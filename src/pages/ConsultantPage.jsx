@@ -11,7 +11,7 @@ const ConsultantPage = () => {
   const options = ['Government Schemes', 'Citrus Crop'];
 
   // Backend URL - Using your Render deployment
-  const BACKEND_URL = 'https://agrigpt-backend-rag.onrender.com';
+  const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://0.0.0.0:8000';
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
