@@ -52,7 +52,8 @@ const Sidebar = ({ onUploadPDF, onClearKnowledge, isConnected }) => {
     };
 
     return (
-        <div className="sidebar">
+        <>
+        {/* <div className="sidebar">
             <div className="sidebar-header">
                 <h2 className="sidebar-title">Knowledge Base</h2>
                 <div className={`connection-status ${isConnected ? 'connected' : 'disconnected'}`}>
@@ -61,7 +62,7 @@ const Sidebar = ({ onUploadPDF, onClearKnowledge, isConnected }) => {
                         {isConnected ? 'Connected' : 'Disconnected'}
                     </span>
                 </div>
-            </div>
+            </div> */}
 
             <div className="sidebar-content">
                 <div className="upload-section">
@@ -80,9 +81,9 @@ const Sidebar = ({ onUploadPDF, onClearKnowledge, isConnected }) => {
                     )}
                 </div>
 
-                <div className="divider"></div>
+                {/* <div className="divider"></div> */}
 
-                <div className="actions-section">
+                {/* <div className="actions-section">
                     <Button
                         variant="danger"
                         icon={<FiTrash2 />}
@@ -93,15 +94,16 @@ const Sidebar = ({ onUploadPDF, onClearKnowledge, isConnected }) => {
                     >
                         Clear Knowledge Base
                     </Button>
-                </div>
+                </div> */}
             </div>
 
-            <div className="sidebar-footer">
+            {/* <div className="sidebar-footer">
                 <p className="footer-text">
                     Upload PDF documents to chat with their content
                 </p>
-            </div>
-        </div>
+            </div> */}
+        {/* </div> */}
+        </>
     );
 };
 
