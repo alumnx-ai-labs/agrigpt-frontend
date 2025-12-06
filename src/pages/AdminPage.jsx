@@ -37,7 +37,7 @@ const AdminPage = () => {
       // Determine endpoint based on selected option
       let endpoint;
       if (selectedOption === 'Citrus Crop') {
-        endpoint = `${API_URL}/upload-crop-data`;
+        endpoint = `${API_URL}/clip-ingest-data`;
       } else if (selectedOption === 'Government Schemes') {
         endpoint = `${API_URL}/upload-government-schemes`;
       }
@@ -98,7 +98,7 @@ const AdminPage = () => {
 
   const getInstructionText = () => {
     if (selectedOption === 'Citrus Crop') {
-      return 'Upload PDF files containing Citrus Crop data for ingestion into the RAG database.';
+      return 'Upload PDF files with text and images. Both will be extracted and embedded for enhanced disease detection.';
     } else {
       return 'Upload PDF files containing Government Schemes data for ingestion into the RAG database.';
     }

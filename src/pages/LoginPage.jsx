@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 function LoginPage() {
     const [isLogin, setIsLogin] = useState(true);
@@ -9,6 +10,16 @@ function LoginPage() {
     const [error, setError] = useState(null);
     const [message, setMessage] = useState(null);
     const navigate = useNavigate();
+    const location = useLocation();
+    const { login, isAuthenticated } = useAuth();
+
+    // Redirect if already logged in
+    useEffect(() => {
+        if (isAuthenticated) {
+            const from = location.state?.from?.pathname || '/consultant';
+            navigate(from, { replace: true });
+        }
+    }, [isAuthenticated, navigate, location]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -21,10 +32,11 @@ function LoginPage() {
 
         try {
             if (isLogin) {
-                // Accept any email/password for demo purposes
-                console.log('Logged in with:', email);
-                // Redirect to consultant page after login
-                navigate('/consultant');
+                // Login with email
+                login(email);
+                // Navigate directly after login
+                const from = location.state?.from?.pathname || '/consultant';
+                navigate(from, { replace: true });
             } else {
                 // Simulate signup
                 console.log('Created account for:', email);
