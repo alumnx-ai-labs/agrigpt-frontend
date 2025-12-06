@@ -5,87 +5,226 @@ const ConsultantPage = () => {
   const [query, setQuery] = useState('');
   const [chatHistory, setChatHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const chatEndRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   const options = ['Government Schemes', 'Citrus Crop'];
 
   // Backend URL - Using your Render deployment
-  const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://0.0.0.0:8000';
+  const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatHistory]);
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file && file.type.startsWith('image/')) {
+      setSelectedImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const clearImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const handleSubmit = async () => {
-    if (!query.trim()) {
-      alert('Please enter a query');
+    if (!query.trim() && !selectedImage) {
+      alert('Please enter a query or upload an image');
       return;
     }
 
     // Add user message to chat
     const userMessage = {
       type: 'user',
-      message: query,
+      message: query || 'Analyze this crop image',
+      image: imagePreview,
       timestamp: new Date().toISOString()
     };
     setChatHistory(prev => [...prev, userMessage]);
 
     setIsLoading(true);
-    const currentQuery = query;
-    setQuery(''); // Clear input immediately
+    const currentQuery = query || 'What disease does this crop have and how can I treat it?';
+    setQuery('');
 
     try {
-      // Determine endpoint based on selected option
-      const endpoint = selectedOption === 'Citrus Crop'
-        ? '/ask-consultant'
-        : '/query-government-schemes';
+      let data;
 
-      console.log('Sending request to:', `${BACKEND_URL}${endpoint}`);
+      // Check if this is an image query (text-to-image search)
+      const isImageSearchQuery = selectedOption === 'Citrus Crop' &&
+        /\b(show|images?|pictures?|photos?|display|see|send|give|return|get|find|similar)\b/i.test(currentQuery);
 
-      // Format chat history for API (only include previous messages, not the current one)
-      const formattedHistory = chatHistory
-        .filter(msg => msg.type === 'user' || msg.type === 'assistant')
-        .map(msg => ({
-          role: msg.type === 'user' ? 'user' : 'assistant',
-          content: msg.message
-        }));
+      // Check if user wants to find similar images (image-to-image search)
+      const isSimilarImageQuery = selectedImage &&
+        /\b(similar|like this|find|match|search|same|compare)\b/i.test(currentQuery);
 
-      console.log('Request payload:', {
-        query: currentQuery,
-        chat_history: formattedHistory
-      });
+      if (selectedOption === 'Citrus Crop' && selectedImage && isSimilarImageQuery) {
+        // Image-to-image search: find similar images in database
+        const formData = new FormData();
+        formData.append('file', selectedImage);
 
-      const result = await fetch(`${BACKEND_URL}${endpoint}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query: currentQuery,
-          chat_history: formattedHistory
-        }),
-      });
+        console.log('Sending image-to-image search to:', `${BACKEND_URL}/query-by-image`);
 
-      console.log('Response status:', result.status);
+        const result = await fetch(`${BACKEND_URL}/query-by-image?top_k=5`, {
+          method: 'POST',
+          body: formData,
+        });
 
-      if (!result.ok) {
-        const errorText = await result.text();
-        console.error('Error response:', errorText);
-        throw new Error(`HTTP error! status: ${result.status} - ${errorText}`);
+        if (!result.ok) {
+          const errorText = await result.text();
+          throw new Error(`HTTP error! status: ${result.status} - ${errorText}`);
+        }
+
+        data = await result.json();
+        clearImage();
+
+        // Format response with similar images
+        const imageResults = data.results || [];
+        const aiMessage = {
+          type: 'assistant',
+          message: imageResults.length > 0
+            ? `Found ${imageResults.length} similar images in the database:`
+            : 'No similar images found in the database.',
+          images: imageResults.map(img => ({
+            url: img.image_url.startsWith('/') ? `${BACKEND_URL}${img.image_url}` : img.image_url,
+            source: img.source,
+            page: img.page,
+            score: img.score
+          })),
+          timestamp: new Date().toISOString()
+        };
+        setChatHistory(prev => [...prev, aiMessage]);
+
+      } else if (selectedOption === 'Citrus Crop' && selectedImage) {
+        // Use image endpoint when image is uploaded (multimodal Q&A)
+        const formData = new FormData();
+        formData.append('file', selectedImage);
+        formData.append('query', currentQuery);
+
+        console.log('Sending image request to:', `${BACKEND_URL}/ask-with-image`);
+
+        const result = await fetch(`${BACKEND_URL}/ask-with-image`, {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!result.ok) {
+          const errorText = await result.text();
+          throw new Error(`HTTP error! status: ${result.status} - ${errorText}`);
+        }
+
+        data = await result.json();
+        clearImage();
+
+        // Format response for image query
+        const aiMessage = {
+          type: 'assistant',
+          message: data.answer || 'No response received',
+          sources: data.matched_sources || [],
+          confidence: data.confidence,
+          // Include related images if available
+          images: (data.related_images || []).map(url => ({
+            url: url.startsWith('/') ? `${BACKEND_URL}${url}` : url,
+            source: 'Related Image',
+            page: 0,
+            score: data.confidence || 0
+          })),
+          timestamp: new Date().toISOString()
+        };
+        setChatHistory(prev => [...prev, aiMessage]);
+
+      } else if (isImageSearchQuery) {
+        // Use HYBRID query endpoint for "show me image" queries (text-to-image)
+        console.log('Sending HYBRID image query to:', `${BACKEND_URL}/hybrid-image-query`);
+
+        const result = await fetch(`${BACKEND_URL}/hybrid-image-query`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            query: currentQuery,
+            top_k: 5
+          }),
+        });
+
+        if (!result.ok) {
+          const errorText = await result.text();
+          throw new Error(`HTTP error! status: ${result.status} - ${errorText}`);
+        }
+
+        data = await result.json();
+
+        // Format response with images
+        const imageResults = data.results || [];
+        const aiMessage = {
+          type: 'assistant',
+          message: imageResults.length > 0
+            ? `Here are ${imageResults.length} images matching your query:`
+            : 'No matching images found in the database.',
+          images: imageResults.map(img => ({
+            url: img.image_url.startsWith('/') ? `${BACKEND_URL}${img.image_url}` : img.image_url,
+            source: img.source,
+            page: img.page,
+            score: img.score
+          })),
+          timestamp: new Date().toISOString()
+        };
+        setChatHistory(prev => [...prev, aiMessage]);
+
+      } else {
+        // Use text endpoint
+        const endpoint = selectedOption === 'Citrus Crop'
+          ? '/ask-consultant'
+          : '/query-government-schemes';
+
+        console.log('Sending request to:', `${BACKEND_URL}${endpoint}`);
+
+        const formattedHistory = chatHistory
+          .filter(msg => msg.type === 'user' || msg.type === 'assistant')
+          .map(msg => ({
+            role: msg.type === 'user' ? 'user' : 'assistant',
+            content: msg.message
+          }));
+
+        const result = await fetch(`${BACKEND_URL}${endpoint}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            query: currentQuery,
+            chat_history: formattedHistory
+          }),
+        });
+
+        if (!result.ok) {
+          const errorText = await result.text();
+          throw new Error(`HTTP error! status: ${result.status} - ${errorText}`);
+        }
+
+        data = await result.json();
+
+        const aiMessage = {
+          type: 'assistant',
+          message: data.response || 'No response received',
+          sources: data.sources || [],
+          timestamp: new Date().toISOString()
+        };
+        setChatHistory(prev => [...prev, aiMessage]);
       }
-
-      const data = await result.json();
-      console.log('Response data:', data);
-
-      // Add AI response to chat
-      const aiMessage = {
-        type: 'assistant',
-        message: data.response || 'No response received',
-        sources: data.sources || [],
-        timestamp: new Date().toISOString()
-      };
-      setChatHistory(prev => [...prev, aiMessage]);
 
     } catch (error) {
       console.error('Full error:', error);
@@ -110,6 +249,7 @@ const ConsultantPage = () => {
   const clearChat = () => {
     setChatHistory([]);
     setQuery('');
+    clearImage();
   };
 
   return (
@@ -166,6 +306,9 @@ const ConsultantPage = () => {
                   {msg.type === 'user' && (
                     <div className="flex justify-end">
                       <div className="message-user">
+                        {msg.image && (
+                          <img src={msg.image} alt="Uploaded crop" className="max-w-xs rounded mb-2" />
+                        )}
                         <p className="text-sm text-notion-default whitespace-pre-wrap">{msg.message}</p>
                       </div>
                     </div>
@@ -174,6 +317,27 @@ const ConsultantPage = () => {
                   {msg.type === 'assistant' && (
                     <div className="message-assistant">
                       <p className="text-sm text-notion-default whitespace-pre-wrap leading-relaxed">{msg.message}</p>
+
+                      {/* Display images from CLIP query */}
+                      {msg.images && msg.images.length > 0 && (
+                        <div className="mt-3 grid grid-cols-2 gap-3">
+                          {msg.images.map((img, idx) => (
+                            <div key={idx} className="border border-[rgba(55,53,47,0.09)] rounded-lg overflow-hidden">
+                              <img
+                                src={img.url}
+                                alt={`Disease image from ${img.source}`}
+                                className="w-full h-32 object-cover"
+                                onError={(e) => { e.target.style.display = 'none'; }}
+                              />
+                              <div className="p-2 bg-notion-bg-gray">
+                                <p className="text-xs text-notion-secondary truncate">{img.source}</p>
+                                <p className="text-xs text-notion-tertiary">Page {img.page} • {(img.score * 100).toFixed(0)}% match</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
                       {msg.sources && msg.sources.length > 0 && (
                         <div className="mt-3 flex items-center gap-2 flex-wrap">
                           <span className="text-xs text-notion-tertiary">📎 Sources:</span>
@@ -207,11 +371,50 @@ const ConsultantPage = () => {
 
         {/* Input Area */}
         <div className="p-4 border-t border-[rgba(55,53,47,0.09)] bg-white">
+          {/* Image Preview */}
+          {selectedOption === 'Citrus Crop' && imagePreview && (
+            <div className="mb-3 flex items-center gap-3 p-2 bg-notion-bg-hover rounded-lg">
+              <img src={imagePreview} alt="Preview" className="w-16 h-16 object-cover rounded" />
+              <div className="flex-1">
+                <p className="text-sm text-notion-default">{selectedImage?.name}</p>
+                <p className="text-xs text-notion-tertiary">{(selectedImage?.size / 1024).toFixed(1)} KB</p>
+              </div>
+              <button
+                className="btn-notion btn-notion-default text-xs px-2 py-1"
+                onClick={clearImage}
+              >
+                Remove
+              </button>
+            </div>
+          )}
+
           <div className="flex items-end gap-3">
+            {/* Image Upload Button */}
+            {selectedOption === 'Citrus Crop' && (
+              <div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="hidden"
+                  id="image-upload"
+                />
+                <label
+                  htmlFor="image-upload"
+                  className="btn-notion btn-notion-default h-10 px-3 cursor-pointer flex items-center gap-2"
+                >
+                  📷 Photo
+                </label>
+              </div>
+            )}
+
             <div className="flex-1">
               <textarea
                 className="input-notion resize-none py-2.5"
-                placeholder="Ask your question... (Press Enter to send)"
+                placeholder={selectedOption === 'Citrus Crop'
+                  ? "Ask about crops or upload a photo for diagnosis..."
+                  : "Ask your question... (Press Enter to send)"}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyPress={handleKeyPress}
@@ -223,7 +426,7 @@ const ConsultantPage = () => {
             <button
               className="btn-notion btn-notion-primary h-10 px-5"
               onClick={handleSubmit}
-              disabled={isLoading || !query.trim()}
+              disabled={isLoading || (!query.trim() && !selectedImage)}
             >
               {isLoading ? (
                 <span className="spinner-notion border-white border-t-transparent" style={{ width: '16px', height: '16px' }}></span>
