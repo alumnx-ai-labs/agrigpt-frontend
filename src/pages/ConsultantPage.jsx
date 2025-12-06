@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import './ConsultantPage.css';
 
 const ConsultantPage = () => {
   const [selectedOption, setSelectedOption] = useState('Government Schemes');
@@ -35,15 +34,15 @@ const ConsultantPage = () => {
     setIsLoading(true);
     const currentQuery = query;
     setQuery(''); // Clear input immediately
-    
+
     try {
       // Determine endpoint based on selected option
-      const endpoint = selectedOption === 'Citrus Crop' 
-        ? '/ask-consultant' 
+      const endpoint = selectedOption === 'Citrus Crop'
+        ? '/ask-consultant'
         : '/query-government-schemes';
-      
+
       console.log('Sending request to:', `${BACKEND_URL}${endpoint}`);
-      
+
       // Format chat history for API (only include previous messages, not the current one)
       const formattedHistory = chatHistory
         .filter(msg => msg.type === 'user' || msg.type === 'assistant')
@@ -78,7 +77,7 @@ const ConsultantPage = () => {
 
       const data = await result.json();
       console.log('Response data:', data);
-      
+
       // Add AI response to chat
       const aiMessage = {
         type: 'assistant',
@@ -87,7 +86,7 @@ const ConsultantPage = () => {
         timestamp: new Date().toISOString()
       };
       setChatHistory(prev => [...prev, aiMessage]);
-      
+
     } catch (error) {
       console.error('Full error:', error);
       const errorMessage = {
@@ -114,19 +113,27 @@ const ConsultantPage = () => {
   };
 
   return (
-    <div className="consultant-container">
-      <div className="consultant-card">
-        <h1 className="consultant-title">
-          AgriGPT SME AI Consultant
-        </h1>
+    <div className="page-container flex items-center justify-center p-6">
+      <div className="content-card w-full max-w-4xl flex flex-col" style={{ height: 'calc(100vh - 3rem)', maxHeight: '900px' }}>
+        {/* Header */}
+        <div className="p-6 border-b border-[rgba(55,53,47,0.09)]">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="empty-state-icon" style={{ width: '2.5rem', height: '2.5rem', marginBottom: 0 }}>
+              🌾
+            </div>
+            <div>
+              <h1 className="text-xl font-semibold text-notion-default tracking-tight">AgriGPT</h1>
+              <p className="text-sm text-notion-secondary">AI Agricultural Consultant</p>
+            </div>
+          </div>
 
-        <div className="topic-selector-container">
-          <div className="topic-selector-wrapper">
-            <label className="topic-label">
+          {/* Topic Selector */}
+          <div className="max-w-xs">
+            <label className="block text-xs font-medium text-notion-secondary mb-1.5 uppercase tracking-wide">
               Select Topic
             </label>
             <select
-              className="topic-select"
+              className="select-notion"
               value={selectedOption}
               onChange={(e) => setSelectedOption(e.target.value)}
               disabled={isLoading}
@@ -140,85 +147,90 @@ const ConsultantPage = () => {
           </div>
         </div>
 
-        <div className="chat-container">
-          
+        {/* Chat Messages */}
+        <div className="flex-1 overflow-y-auto p-6 bg-notion-bg-gray">
+          {chatHistory.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-center">
+              <div className="empty-state-icon">💬</div>
+              <h3 className="text-lg font-semibold text-notion-default mb-1">
+                Ask me anything about {selectedOption}
+              </h3>
+              <p className="text-notion-secondary text-sm max-w-sm">
+                Start a conversation by typing your question below
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {chatHistory.map((msg, index) => (
+                <div key={index}>
+                  {msg.type === 'user' && (
+                    <div className="flex justify-end">
+                      <div className="message-user">
+                        <p className="text-sm text-notion-default whitespace-pre-wrap">{msg.message}</p>
+                      </div>
+                    </div>
+                  )}
 
-          <div className="chat-messages">
-            {chatHistory.length === 0 ? (
-              <div className="empty-chat">
-                <div className="empty-chat-icon">💬</div>
-                <p className="empty-chat-title">
-                  Ask me anything about {selectedOption}
-                </p>
-                <p className="empty-chat-subtitle">
-                  Start a conversation by typing your question below
-                </p>
-              </div>
-            ) : (
-              <>
-                {chatHistory.map((msg, index) => (
-                  <div key={index} className="message-wrapper">
-                    {msg.type === 'user' && (
-                      <div className="user-message-container">
-                        <div className="user-message">
-                          {msg.message}
+                  {msg.type === 'assistant' && (
+                    <div className="message-assistant">
+                      <p className="text-sm text-notion-default whitespace-pre-wrap leading-relaxed">{msg.message}</p>
+                      {msg.sources && msg.sources.length > 0 && (
+                        <div className="mt-3 flex items-center gap-2 flex-wrap">
+                          <span className="text-xs text-notion-tertiary">📎 Sources:</span>
+                          {msg.sources.map((source, idx) => (
+                            <span key={idx} className="source-tag">{source}</span>
+                          ))}
                         </div>
-                      </div>
-                    )}
-                    
-                    {msg.type === 'assistant' && (
-                      <div className="assistant-message-container">
-                        <div className="assistant-message">
-                          {msg.message}
-                        </div>
-                        {msg.sources && msg.sources.length > 0 && (
-                          <div className="sources-container">
-                            <div className="sources-title">
-                              📚 Sources:
-                            </div>
-                            <div className="sources-list">
-                              {msg.sources.map((source, idx) => (
-                                <span key={idx} className="source-tag">
-                                  {source}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    
-                    {msg.type === 'error' && (
-                      <div className="error-message">
-                        ⚠️ {msg.message}
-                      </div>
-                    )}
-                  </div>
-                ))}
-                <div ref={chatEndRef} />
-              </>
-            )}
-          </div>
+                      )}
+                    </div>
+                  )}
 
-          <div className="input-container">
-            <div className="input-wrapper">
+                  {msg.type === 'error' && (
+                    <div className="message-error">
+                      <p className="text-sm">⚠️ {msg.message}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {isLoading && (
+                <div className="flex items-center gap-3 text-notion-secondary">
+                  <div className="spinner-notion"></div>
+                  <span className="text-sm">Thinking...</span>
+                </div>
+              )}
+
+              <div ref={chatEndRef} />
+            </div>
+          )}
+        </div>
+
+        {/* Input Area */}
+        <div className="p-4 border-t border-[rgba(55,53,47,0.09)] bg-white">
+          <div className="flex items-end gap-3">
+            <div className="flex-1">
               <textarea
-                className="message-input"
-                placeholder="Ask your question... (Press Enter to send, Shift+Enter for new line)"
+                className="input-notion resize-none py-2.5"
+                placeholder="Ask your question... (Press Enter to send)"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyPress={handleKeyPress}
                 disabled={isLoading}
                 rows={2}
+                style={{ minHeight: '44px' }}
               />
-              <button
-                className="send-button"
-                onClick={handleSubmit}
-                disabled={isLoading || !query.trim()}
-              >
-                {isLoading ? '⏳' : '➤'}
-              </button>
             </div>
+            <button
+              className="btn-notion btn-notion-primary h-10 px-5"
+              onClick={handleSubmit}
+              disabled={isLoading || !query.trim()}
+            >
+              {isLoading ? (
+                <span className="spinner-notion border-white border-t-transparent" style={{ width: '16px', height: '16px' }}></span>
+              ) : (
+                'Send'
+              )}
+            </button>
           </div>
         </div>
       </div>

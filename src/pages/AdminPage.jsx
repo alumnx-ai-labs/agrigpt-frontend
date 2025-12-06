@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 
 const AdminPage = () => {
   const [selectedOption, setSelectedOption] = useState('Citrus Crop');
-  const [showDropdown, setShowDropdown] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -12,14 +11,6 @@ const AdminPage = () => {
 
   // API base URL - uses environment variable for flexibility
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-
-  const handleOptionSelect = (option) => {
-    setSelectedOption(option);
-    setShowDropdown(false);
-    setUploadSuccess(false);
-    setSelectedFile(null);
-    setError(null);
-  };
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -72,17 +63,17 @@ const AdminPage = () => {
       // Try to get response body regardless of status
       let responseData;
       const contentType = response.headers.get('content-type');
-      
+
       if (contentType && contentType.includes('application/json')) {
         responseData = await response.json();
       } else {
         responseData = await response.text();
       }
-      
+
       console.log('Response data:', responseData);
 
       if (!response.ok) {
-        const errorMessage = typeof responseData === 'object' 
+        const errorMessage = typeof responseData === 'object'
           ? (responseData?.detail || responseData?.message || JSON.stringify(responseData))
           : responseData;
         throw new Error(`Upload failed (${response.status}): ${errorMessage}`);
@@ -92,7 +83,7 @@ const AdminPage = () => {
 
       setUploadSuccess(true);
       setSelectedFile(null);
-      
+
       // Reset file input
       const fileInput = document.getElementById('file-input');
       if (fileInput) fileInput.value = '';
@@ -107,111 +98,131 @@ const AdminPage = () => {
 
   const getInstructionText = () => {
     if (selectedOption === 'Citrus Crop') {
-      return 'Select the pdf file containing the Citrus Crop Data for Ingestion into the RAG database';
+      return 'Upload PDF files containing Citrus Crop data for ingestion into the RAG database.';
     } else {
-      return 'Select the pdf file containing the Government Schemes Data for Ingestion into the RAG database';
+      return 'Upload PDF files containing Government Schemes data for ingestion into the RAG database.';
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#e8e4e1] flex justify-center items-center p-8">
-      <div className="bg-white p-12 max-w-6xl w-full shadow-md">
-        <h1 className="text-center text-4xl mb-12 font-bold">
-          AgriGPT SME AI Consultant
-        </h1>
-
-        {/* Dropdown Section */}
-        <div className="flex items-center gap-8 mb-8">
-          <label className="text-2xl font-semibold min-w-[200px]">
-            Select an option
-          </label>
-          
-          <div className="relative flex-1 max-w-md">
-            <button
-              onClick={() => setShowDropdown(!showDropdown)}
-              className="w-full px-6 py-3 bg-[#f0e6e6] border-none rounded text-xl font-semibold cursor-pointer flex justify-between items-center"
-            >
-              {selectedOption}
-              <span className="text-2xl">▼</span>
-            </button>
-
-            {showDropdown && (
-              <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded mt-1 shadow-md z-10">
-                {options.map((option) => (
-                  <div
-                    key={option}
-                    onClick={() => handleOptionSelect(option)}
-                    className={`px-6 py-3 cursor-pointer text-xl font-semibold border-b border-gray-200 hover:bg-gray-100 ${
-                      option === selectedOption ? 'bg-[#f0e6e6]' : 'bg-white'
-                    }`}
-                  >
-                    {option}
-                  </div>
-                ))}
-              </div>
-            )}
+    <div className="page-container flex items-center justify-center p-6">
+      <div className="content-card w-full max-w-2xl p-8">
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-8">
+          <div className="empty-state-icon" style={{ width: '2.5rem', height: '2.5rem', marginBottom: 0 }}>
+            ⚙️
+          </div>
+          <div>
+            <h1 className="text-xl font-semibold text-notion-default tracking-tight">Admin Panel</h1>
+            <p className="text-sm text-notion-secondary">Upload documents to build the knowledge base</p>
           </div>
         </div>
 
-        {/* Upload Section */}
-        <div className="bg-gray-100 p-10 mb-8 rounded">
-          <p className="text-2xl font-semibold m-0 leading-relaxed">
+        {/* Topic Selector */}
+        <div className="mb-6">
+          <label className="block text-xs font-medium text-notion-secondary mb-1.5 uppercase tracking-wide">
+            Select Category
+          </label>
+          <select
+            className="select-notion max-w-xs"
+            value={selectedOption}
+            onChange={(e) => {
+              setSelectedOption(e.target.value);
+              setUploadSuccess(false);
+              setSelectedFile(null);
+              setError(null);
+            }}
+            disabled={uploading}
+          >
+            {options.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Instructions */}
+        <div className="bg-notion-bg-gray p-4 rounded-lg mb-6 border border-[rgba(55,53,47,0.09)]">
+          <p className="text-sm text-notion-secondary">
             {getInstructionText()}
           </p>
         </div>
 
-        {/* File Selection Display */}
-        {selectedFile && (
-          <div className="bg-gray-50 p-4 mb-4 rounded border border-gray-300">
-            <p className="m-0 text-base text-gray-800">
-              Selected file: <strong>{selectedFile.name}</strong>
+        {/* Dropzone */}
+        <div className="dropzone-notion relative mb-6">
+          <input
+            id="file-input"
+            type="file"
+            accept=".pdf"
+            onChange={handleFileChange}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            disabled={uploading}
+          />
+          <div className="text-center">
+            <div className="text-3xl mb-2">📄</div>
+            <p className="text-sm text-notion-secondary">
+              <span className="text-notion-default font-medium">Click to upload</span> or drag and drop
             </p>
+            <p className="text-xs text-notion-tertiary mt-1">PDF files only</p>
+          </div>
+        </div>
+
+        {/* Selected File Display */}
+        {selectedFile && (
+          <div className="flex items-center gap-3 p-3 bg-notion-bg-hover rounded-lg mb-4">
+            <span className="text-xl">📎</span>
+            <div className="flex-1">
+              <p className="text-sm text-notion-default font-medium">{selectedFile.name}</p>
+              <p className="text-xs text-notion-tertiary">
+                {(selectedFile.size / 1024).toFixed(1)} KB
+              </p>
+            </div>
+            <button
+              className="btn-notion btn-notion-default"
+              onClick={() => {
+                setSelectedFile(null);
+                const fileInput = document.getElementById('file-input');
+                if (fileInput) fileInput.value = '';
+              }}
+            >
+              Remove
+            </button>
           </div>
         )}
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-50 border border-red-200 p-4 rounded mb-4">
-            <p className="m-0 text-red-700 text-base">
-              {error}
-            </p>
+          <div className="message-error mb-4">
+            <p className="text-sm">⚠️ {error}</p>
           </div>
         )}
-
-        {/* Upload Buttons */}
-        <div className="flex justify-end gap-4 mb-8">
-          <label className="bg-gray-500 text-white px-12 py-3.5 rounded-full text-xl font-semibold cursor-pointer inline-block hover:bg-gray-600 transition-colors">
-            Choose File
-            <input
-              id="file-input"
-              type="file"
-              accept=".pdf"
-              onChange={handleFileChange}
-              className="hidden"
-            />
-          </label>
-
-          <button
-            onClick={handleUpload}
-            disabled={!selectedFile || uploading}
-            className={`px-12 py-3.5 rounded-full text-xl font-semibold border-none inline-block transition-colors ${
-              !selectedFile || uploading
-                ? 'bg-gray-400 cursor-not-allowed text-white'
-                : 'bg-indigo-700 hover:bg-indigo-800 text-white cursor-pointer'
-            }`}
-          >
-            {uploading ? 'Uploading...' : 'Upload'}
-          </button>
-        </div>
 
         {/* Success Message */}
         {uploadSuccess && (
-          <div className="bg-[#b2d8d8] p-8 rounded text-center">
-            <p className="text-2xl font-semibold m-0">
-              Thank you! The PDF file has been successfully ingested.
-            </p>
+          <div className="badge-success py-3 px-4 rounded-lg mb-4 flex items-center gap-2">
+            <span>✓</span>
+            <span>PDF file has been successfully ingested!</span>
           </div>
         )}
+
+        {/* Upload Button */}
+        <div className="flex justify-end">
+          <button
+            onClick={handleUpload}
+            disabled={!selectedFile || uploading}
+            className="btn-notion btn-notion-primary px-6 py-2.5"
+          >
+            {uploading ? (
+              <span className="flex items-center gap-2">
+                <span className="spinner-notion border-white border-t-transparent" style={{ width: '16px', height: '16px' }}></span>
+                Uploading...
+              </span>
+            ) : (
+              'Upload PDF'
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
