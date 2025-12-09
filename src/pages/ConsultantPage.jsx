@@ -370,72 +370,38 @@ const ConsultantPage = () => {
         </div>
 
         {/* Input Area */}
-        <div className="p-4 border-t border-[rgba(55,53,47,0.09)] bg-white">
-          {/* Image Preview */}
-          {selectedOption === 'Citrus Crop' && imagePreview && (
-            <div className="mb-3 flex items-center gap-3 p-2 bg-notion-bg-hover rounded-lg">
-              <img src={imagePreview} alt="Preview" className="w-16 h-16 object-cover rounded" />
-              <div className="flex-1">
-                <p className="text-sm text-notion-default">{selectedImage?.name}</p>
-                <p className="text-xs text-notion-tertiary">{(selectedImage?.size / 1024).toFixed(1)} KB</p>
-              </div>
-              <button
-                className="btn-notion btn-notion-default text-xs px-2 py-1"
-                onClick={clearImage}
-              >
-                Remove
-              </button>
-            </div>
-          )}
+               {/* Input Area */}
+       <div className="p-4 border-t border-[rgba(55,53,47,0.09)] bg-white">
+  <div className="flex items-center gap-3">
+    <textarea
+      className="input-notion flex-1 resize-none py-3"
+      placeholder="Ask your question... (Press Enter to send)"
+      value={query}
+      onChange={(e) => setQuery(e.target.value)}
+      onKeyPress={handleKeyPress}
+      disabled={isLoading}
+      rows={2}
+      style={{ minHeight: '44px' }}
+    />
 
-          <div className="flex items-end gap-3">
-            {/* Image Upload Button */}
-            {selectedOption === 'Citrus Crop' && (
-              <div>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="hidden"
-                  id="image-upload"
-                />
-                <label
-                  htmlFor="image-upload"
-                  className="btn-notion btn-notion-default h-10 px-3 cursor-pointer flex items-center gap-2"
-                >
-                  📷 Photo
-                </label>
-              </div>
-            )}
+    <button
+      className="btn-notion btn-notion-primary px-5 py-2.5 rounded-md"
+      onClick={handleSubmit}
+      disabled={isLoading || !query.trim()}
+      style={{ height: '44px' }}   // <-- Matches textarea height
+    >
+      {isLoading ? (
+        <span
+          className="spinner-notion border-white border-t-transparent"
+          style={{ width: '16px', height: '16px' }}
+        ></span>
+      ) : (
+        'Send'
+      )}
+    </button>
+  </div>
+</div>
 
-            <div className="flex-1">
-              <textarea
-                className="input-notion resize-none py-2.5"
-                placeholder={selectedOption === 'Citrus Crop'
-                  ? "Ask about crops or upload a photo for diagnosis..."
-                  : "Ask your question... (Press Enter to send)"}
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyPress={handleKeyPress}
-                disabled={isLoading}
-                rows={2}
-                style={{ minHeight: '44px' }}
-              />
-            </div>
-            <button
-              className="btn-notion btn-notion-primary h-10 px-5"
-              onClick={handleSubmit}
-              disabled={isLoading || (!query.trim() && !selectedImage)}
-            >
-              {isLoading ? (
-                <span className="spinner-notion border-white border-t-transparent" style={{ width: '16px', height: '16px' }}></span>
-              ) : (
-                'Send'
-              )}
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );
