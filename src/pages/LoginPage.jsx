@@ -5,7 +5,7 @@ import {
   signInWithPopup, 
   onAuthStateChanged 
 } from 'firebase/auth';
-import { doc, setDoc,  serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import { Sparkles } from 'lucide-react';
 
@@ -41,16 +41,14 @@ export default function LoginPage() {
 
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (user && !didNavigateRef.current) {
-        try {
-            await registerUserInBackend(user.email);
-        } catch (err) {
-            console.warn("Backend registration skipped:", err);
-        }
-
+        
+        // --- 🚀 INSTANT NAVIGATION (Demo Mode) ---
         didNavigateRef.current = true;
         navigate('/consultant', { replace: true });
-        
-        handlePostSignIn(user).catch(err => console.warn("Session warning:", err));
+
+        // --- Background Tasks ---
+        ensureUserInBackend(user.email).catch(err => console.warn("Backend check failed (Ignored):", err.message));
+        handlePostSignIn(user).catch(err => console.warn("Session setup skipped:", err));
       }
     });
 
@@ -61,8 +59,8 @@ export default function LoginPage() {
     };
   }, [navigate]);
 
-  // --- Backend & Firebase Logic ---
-  const registerUserInBackend = async (userEmail) => {
+  // --- Backend Logic ---
+  const ensureUserInBackend = async (userEmail) => {
     if (!userEmail) return;
     try {
         const response = await fetch(`${BACKEND_URL}/users`, {
@@ -70,9 +68,16 @@ export default function LoginPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: userEmail })
         });
-        if (response.status === 404) return;
+        
+        if (!response.ok) {
+            console.warn(`Backend responded with status: ${response.status} (Non-fatal)`);
+        } else {
+            // --- ✅ SUCCESS ALERT ---
+            // This runs only if the backend returns 200 OK
+            console.log("Backend User Registration Success");
+        }
     } catch (error) {
-        console.error("Backend registration failed:", error);
+        console.warn("Backend connection failed (Non-fatal):", error.message);
     }
   };
 
@@ -121,34 +126,28 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen relative overflow-hidden bg-[#0a1f1c] flex items-center justify-center font-sans selection:bg-green-500/30">
       
-      {/* --- BACKGROUND FX --- */}
+      {/* --- BACKGROUND FX (Clean Dark Gradient) --- */}
       <div className="absolute inset-0">
-        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_0%,rgba(16,185,129,0.15),transparent_70%)]" />
-        <div className="absolute bottom-0 right-0 w-full h-full bg-[radial-gradient(circle_at_100%_100%,rgba(5,150,105,0.1),transparent_60%)]" />
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_0%,rgba(16,185,129,0.05),transparent_70%)]" />
+        <div className="absolute bottom-0 right-0 w-full h-full bg-[radial-gradient(circle_at_100%_100%,rgba(5,150,105,0.05),transparent_60%)]" />
       </div>
 
-      <div className="absolute top-[-10%] left-[-5%] w-96 h-96 bg-green-500/20 rounded-full blur-[128px] animate-pulse-slow" />
-      <div className="absolute bottom-[10%] right-[-5%] w-[30rem] h-[30rem] bg-emerald-600/10 rounded-full blur-[128px] animate-float" />
-
-      {/* Grid Pattern */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:100px_100px] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_50%,#000_70%,transparent_100%)] pointer-events-none" />
+      {/* Grid Pattern (Subtle) */}
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:60px_60px] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_50%,#000_70%,transparent_100%)] pointer-events-none" />
 
       {/* --- MAIN CARD --- */}
       <div className="relative z-10 w-full max-w-md px-6">
         
-        {/* Glow behind card */}
-        <div className="absolute -inset-1 bg-gradient-to-r from-green-500 to-emerald-600 rounded-[2rem] blur opacity-30 group-hover:opacity-100 transition duration-1000"></div>
-        
+        {/* Card Frame */}
         <div className="relative bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2rem] shadow-2xl overflow-hidden">
           
-          <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent opacity-50 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent opacity-50 pointer-events-none" />
 
           <div className="p-10 flex flex-col items-center text-center">
             
-            {/* Logo Container (Clean - No Orbiting Dot) */}
+            {/* Logo Container */}
             <div className="mb-10 relative group">
-              <div className="absolute inset-0 bg-green-500 blur-3xl opacity-20 group-hover:opacity-40 transition-opacity duration-500 rounded-full" />
-              <div className="relative w-24 h-24 bg-gradient-to-tr from-green-400 to-emerald-600 rounded-3xl flex items-center justify-center shadow-lg transform group-hover:scale-105 transition-transform duration-500 border border-white/20">
+              <div className="relative w-24 h-24 bg-gradient-to-tr from-green-400 to-emerald-600 rounded-3xl flex items-center justify-center shadow-lg border border-white/20">
                 <span className="text-5xl filter drop-shadow-md">🌾</span>
               </div>
             </div>
@@ -157,7 +156,7 @@ export default function LoginPage() {
             <h1 className="text-4xl font-bold text-white mb-3 tracking-tight bg-clip-text text-transparent bg-gradient-to-b from-white to-white/70">
               AgriGPT
             </h1>
-            <p className="text-green-100/60 text-sm mb-12 max-w-[280px] leading-relaxed">
+            <p className="text-green-100/50 text-sm mb-12 max-w-[280px] leading-relaxed font-medium">
               Your intelligent AI companion for modern, sustainable agriculture.
             </p>
 
@@ -196,8 +195,8 @@ export default function LoginPage() {
             </button>
 
             {/* Footer Text */}
-            <div className="mt-10 flex items-center justify-center gap-2 text-[10px] font-semibold text-white/40 uppercase tracking-widest">
-              <Sparkles className="w-3 h-3 text-emerald-400" />
+            <div className="mt-10 flex items-center justify-center gap-2 text-[10px] font-semibold text-white/30 uppercase tracking-widest">
+              <Sparkles className="w-3 h-3 text-emerald-500/50" />
               <span>Powered by Alumnx AI Labs</span>
             </div>
 
@@ -206,19 +205,9 @@ export default function LoginPage() {
       </div>
 
       <style>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-20px); }
-        }
-        @keyframes pulse-slow {
-          0%, 100% { opacity: 0.2; transform: scale(1); }
-          50% { opacity: 0.3; transform: scale(1.1); }
-        }
         @keyframes shine {
           100% { left: 125%; }
         }
-        .animate-float { animation: float 10s ease-in-out infinite; }
-        .animate-pulse-slow { animation: pulse-slow 8s ease-in-out infinite; }
         .group-hover\\:animate-shine:hover { animation: shine 0.75s; }
       `}</style>
     </div>

@@ -8,22 +8,22 @@ import AdminPage from './pages/AdminPage';
 import ConsultantPage from './pages/ConsultantPage';
 import LoginPage from './pages/LoginPage';
 import RecentChats from './pages/RecentChats';
+import ChatViewerPage from './pages/ChatViewerPage'; // <--- IMPORT THIS
 
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <div className="min-h-screen bg-notion-bg">
-          {/* Note: With the new Sidebar layout, you might want to hide Navbar 
-              on /consultant and /recents routes later if it looks double-stacked */}
           <Navbar />
-          
           <Routes>
-            {/* Show login first */}
+            {/* Login Route */}
+            <Route path='/login' element={<LoginPage />} />
+            
+            {/* Redirect root to login */}
             <Route path='/' element={<Navigate to="/login" replace />} />
 
-            <Route path='/login' element={<LoginPage />} />
-
+            {/* Admin Route */}
             <Route
               path='/admin'
               element={
@@ -33,6 +33,7 @@ function App() {
               }
             />
 
+            {/* New Consultation Route */}
             <Route
               path='/consultant'
               element={
@@ -42,7 +43,7 @@ function App() {
               }
             />
 
-            {/* --- NEW ROUTE FOR HISTORY --- */}
+            {/* Recent Chats List Route */}
             <Route
               path='/recents/:category'
               element={
@@ -52,7 +53,17 @@ function App() {
               }
             />
 
-            {/* Fallback to login */}
+            {/* 🔥 NEW: Chat Viewer Route */}
+            <Route
+              path='/chat/:chatId'
+              element={
+                <ProtectedRoute>
+                  <ChatViewerPage />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Fallback */}
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
         </div>
