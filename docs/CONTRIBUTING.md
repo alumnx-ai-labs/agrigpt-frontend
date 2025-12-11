@@ -575,32 +575,97 @@ at the app root. Update your App.jsx accordingly.
 
 ## 🔄 Pull Request Process
 
-### Before Creating a PR
+### 1. Addressing an Issue
 
-1. **Sync with upstream**
+Before raising a Pull Request, please ensure you are working on a valid issue.
 
-   ```bash
-   git fetch upstream
-   git rebase upstream/main
-   ```
+1.  **Find an Issue**:
+    - Browse the [Issues tab](https://github.com/alumnx-ai-labs/agrigpt-frontend/issues).
+    - Look for labels like `good first issue` or `help wanted` if you're new.
+2.  **Request Assignment**:
+    - Comment on the issue: "I would like to work on this issue."
+    - **Wait until you are assigned** the issue by a maintainer before starting work. This prevents multiple people from working on the same thing.
 
-2. **Run linting**
+### 2. Contribution Workflow
 
-   ```bash
-   npm run lint
-   ```
+#### For External Contributors (Forking Workflow)
 
-3. **Test your changes**
+If you are not a core team member, please use the Fork & Pull model:
 
-   ```bash
-   npm run dev
-   # Manually test all affected features
-   ```
+1.  **Fork the Project**: Click the "Fork" button on the top right of the repo page.
+2.  **Clone Your Fork**:
+    ```bash
+    git clone https://github.com/YOUR_USERNAME/agrigpt-frontend.git
+    cd agrigpt-frontend
+    ```
+3.  **Add Upstream Remote**:
+    ```bash
+    git remote add upstream https://github.com/alumnx-ai-labs/agrigpt-frontend.git
+    ```
+4.  **Create a Branch**:
 
-4. **Build successfully**
-   ```bash
-   npm run build
-   ```
+    ```bash
+    # Sync with upstream first
+    git fetch upstream
+    git checkout main
+    git merge upstream/main
+
+    # Create your feature branch
+    git checkout -b type/your-feature-name
+    # Example: git checkout -b fix/login-validation
+    ```
+
+5.  **Make Changes**: Write your code and fix the issue.
+6.  **Commit Changes**: Follow the [Commit Guidelines](#-commit-guidelines).
+7.  **Push to Your Fork**:
+    ```bash
+    git push origin type/your-feature-name
+    ```
+8.  **Open PR**: Create a Pull Request from your fork against the `upstream` repository's `main` branch.
+9.  **Link Issue**: In the **PR description**, **you must link the issue** using a supported keyword (e.g., `Fixes #42`, `Closes #42`, `Resolves #42`). This ensures the issue is automatically closed when the PR is merged.
+
+    - **`Fixes #<issue_number>`**: Indicates that the changes in the PR address and resolve the specified issue.
+    - **`Closes #<issue_number>`**: Similar to `Fixes`, this keyword also signifies that the PR's merge will close the linked issue.
+    - **`Resolves #<issue_number>`**: Another keyword with the same effect, communicating that the PR provides a solution for the referenced issue.
+
+#### For Internal Contributors
+
+1.  **Clone the Repository**:
+    ```bash
+    git clone https://github.com/alumnx-ai-labs/agrigpt-frontend.git
+    ```
+2.  **Create a Branch**:
+    ```bash
+    git checkout -b type/your-feature-name
+    ```
+3.  **Push Changes**:
+    ```bash
+    git push origin type/your-feature-name
+    ```
+4.  **Create Pull Request**.
+
+### 3. Before Submitting Your PR
+
+Ensure you have completed the following:
+
+1.  **Sync with upstream** (for forks) or main:
+    ```bash
+    git fetch upstream
+    git rebase upstream/main
+    ```
+2.  **Run linting**:
+    ```bash
+    npm run lint
+    ```
+3.  **Test your changes**:
+    ```bash
+    npm run dev
+    # Manually test all affected features
+    ```
+4.  **Build successfully**:
+    ```bash
+    npm run build
+    ```
 
 ### PR Title Format
 
