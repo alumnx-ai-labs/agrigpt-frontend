@@ -5,7 +5,7 @@ import { auth } from '../services/firebase';
 import { useAuth } from '../context/AuthContext';
 import Sidebar from '../components/Sidebar';
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://agrigpt-backend-rag.onrender.com';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://api.alumnx.com/api/agrigpt';
 
 const ConsultantPage = () => {
   const { user } = useAuth();

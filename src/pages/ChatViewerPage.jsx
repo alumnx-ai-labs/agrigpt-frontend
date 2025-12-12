@@ -4,7 +4,7 @@ import { ArrowLeft, Send, Loader2, User, Sparkles, Camera, X, Plus, Download } f
 import { auth } from '../services/firebase';
 import Sidebar from '../components/Sidebar';
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://agrigpt-backend-rag.onrender.com';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://api.alumnx.com/api/agrigpt';
 
 const ChatViewerPage = () => {
   const { chatId } = useParams();

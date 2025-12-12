@@ -5,7 +5,7 @@ import { auth } from '../services/firebase';
 import Sidebar from '../components/Sidebar';
 
 // ✅ REAL BACKEND CONNECTION
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://agrigpt-backend-rag.onrender.com';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://api.alumnx.com/api/agrigpt';
 
 const RecentChats = () => {
   const { category } = useParams(); // 'citrus' or 'schemes'
