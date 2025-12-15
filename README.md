@@ -2,6 +2,8 @@
 
 # 🌾 AgriGPT Frontend
 
+> **🔗 Backend Repository**: For the backend setup and API, see [AgriGPT Backend RAG](https://github.com/alumnx-ai-labs/agrigpt-backend-rag)
+
 ### AI-Powered Agricultural Intelligence Platform
 
 [![React](https://img.shields.io/badge/React-19.2.0-61DAFB?style=for-the-badge&logo=react&logoColor=white)](https://react.dev/)
@@ -143,17 +145,15 @@ graph TD
 
 ---
 
-## 🚀 Installation & Setup
+## 🚀 Quick Start
 
 ### Prerequisites
 
-Before you begin, ensure you have the following installed:
+- **Node.js**: v18.0.0 or higher
+- **npm**: v9.0.0 or higher
+- **Git**: Latest version
 
-- **Node.js**: v18.0.0 or higher ([Download](https://nodejs.org/))
-- **npm**: v9.0.0 or higher (comes with Node.js)
-- **Git**: Latest version ([Download](https://git-scm.com/))
-
-### Quick Start
+### Installation Steps
 
 1. **Clone the Repository**
 
@@ -168,13 +168,12 @@ Before you begin, ensure you have the following installed:
    npm install
    ```
 
-3. **Set Up Environment Variables**
+3. **Configure Environment**
 
    ```bash
    cp .env.example .env
+   # Edit .env with your backend API URL
    ```
-
-   Edit `.env` and configure your environment variables (see [Environment Variables](#-environment-variables) section).
 
 4. **Start Development Server**
 
@@ -186,35 +185,23 @@ Before you begin, ensure you have the following installed:
 
    Navigate to [http://localhost:5173](http://localhost:5173)
 
+> **📖 Detailed Installation Guide**: For comprehensive installation instructions including platform-specific setup (Linux, Windows, macOS), troubleshooting, and more, see [INSTALLATION.md](docs/INSTALLATION.md)
+
 ### Production Build
 
-To create a production-ready build:
-
 ```bash
+# Build for production
 npm run build
-```
 
-To preview the production build locally:
-
-```bash
+# Preview production build
 npm run preview
 ```
 
 ### Deployment
 
-This project is configured for easy deployment on **Vercel**:
+Deploy to **Vercel** with one click:
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/alumnx-ai-labs/agrigpt-frontend)
-
-Or deploy manually:
-
-```bash
-# Install Vercel CLI
-npm install -g vercel
-
-# Deploy
-vercel
-```
 
 ---
 

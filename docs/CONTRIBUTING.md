@@ -1,5 +1,7 @@
 # Contributing to AgriGPT Frontend
 
+> **🔗 Backend Repository**: For backend contributions, see [AgriGPT Backend RAG Contributing Guide](https://github.com/alumnx-ai-labs/agrigpt-backend-rag/blob/main/docs/CONTRIBUTING.md)
+
 Thank you for your interest in contributing to **AgriGPT Frontend**! We're excited to have you as part of our community. This document provides guidelines and instructions to help you contribute effectively to this project.
 
 ---
@@ -132,6 +134,8 @@ Before you begin, ensure you have the following installed:
    ```
    Navigate to http://localhost:5173
    ```
+
+> **📖 Detailed Setup Instructions**: For comprehensive installation instructions including platform-specific setup, troubleshooting, and more, see [INSTALLATION.md](./INSTALLATION.md)
 
 ---
 
