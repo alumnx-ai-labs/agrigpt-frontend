@@ -1,12 +1,15 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { useLanguage } from '../../context/LanguageContext'
+import { ReactTransliterate } from 'react-transliterate'
+import 'react-transliterate/dist/index.css'
 import './MessageInput.css'
 
 export default function MessageInput({ onSendText, onSendImage, isLoading, query, onQueryChange }) {
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   const [pendingImage, setPendingImage] = useState(null)
   const [showCamera, setShowCamera] = useState(false)
   const [capturedImage, setCapturedImage] = useState(null)
+  const [isListening, setIsListening] = useState(false)
 
   const fileInputRef = useRef(null)
   const textareaRef = useRef(null)
@@ -16,12 +19,59 @@ export default function MessageInput({ onSendText, onSendImage, isLoading, query
 
   /** Auto-resize textarea */
   useEffect(() => {
-    const ta = textareaRef.current
+    const container = document.querySelector('.input-box');
+    const ta = container ? container.querySelector('textarea') : textareaRef.current;
     if (ta) {
       ta.style.height = 'auto'
       ta.style.height = Math.min(ta.scrollHeight, 120) + 'px'
     }
   }, [query])
+
+  /** Voice Assistant Setup */
+  const toggleListening = () => {
+    if (isListening) {
+      setIsListening(false)
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Voice recognition is not supported in this browser.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+
+    // Map internal language codes to speech recognition language codes
+    const langMap = {
+      'en': 'en-US',
+      'hi': 'hi-IN',
+      'te': 'te-IN'
+    };
+    recognition.lang = langMap[lang] || 'en-US';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      onQueryChange(prev => prev ? prev + ' ' + transcript : transcript);
+    };
+
+    recognition.onerror = (event) => {
+      console.error("Speech recognition error", event.error);
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognition.start();
+  };
 
   /** Handle send */
   const handleSend = useCallback(() => {
@@ -141,17 +191,43 @@ export default function MessageInput({ onSendText, onSendImage, isLoading, query
             <CameraIcon />
           </button>
 
+          {/* Voice button */}
+          <button
+            className={`input-icon-btn mic-btn ${isListening ? 'listening' : ''}`}
+            title="Voice Assistant"
+            onClick={toggleListening}
+          >
+            <MicIcon />
+          </button>
+
           {/* Query textarea */}
           <div className="input-box">
-            <textarea
-              ref={textareaRef}
-              rows={1}
-              value={query}
-              onChange={e => onQueryChange(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={t('typeQuery')}
-              disabled={isLoading}
-            />
+            {lang === 'en' ? (
+              <textarea
+                ref={textareaRef}
+                rows={1}
+                value={query}
+                onChange={e => onQueryChange(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={t('typeQuery')}
+                disabled={isLoading}
+              />
+            ) : (
+              <ReactTransliterate
+                renderComponent={(props) => (
+                  <textarea
+                    {...props}
+                    rows={1}
+                    disabled={isLoading}
+                    placeholder={t('typeQuery')}
+                  />
+                )}
+                value={query}
+                onChangeText={onQueryChange}
+                lang={lang}
+                onKeyDown={handleKeyDown}
+              />
+            )}
           </div>
 
           {/* File upload */}
@@ -197,30 +273,40 @@ export default function MessageInput({ onSendText, onSendImage, isLoading, query
 function CameraIcon() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-      <circle cx="12" cy="13" r="4"/>
+      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+      <circle cx="12" cy="13" r="4" />
     </svg>
   )
 }
 function AttachIcon() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+      <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
     </svg>
   )
 }
 function SendIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="22" y1="2" x2="11" y2="13"/>
-      <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+      <line x1="22" y1="2" x2="11" y2="13" />
+      <polygon points="22 2 15 22 11 13 2 9 22 2" />
     </svg>
   )
 }
 function CloseIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  )
+}
+function MicIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+      <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+      <line x1="12" y1="19" x2="12" y2="23"></line>
+      <line x1="8" y1="23" x2="16" y2="23"></line>
     </svg>
   )
 }

@@ -1,18 +1,26 @@
-import React from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { useLanguage } from '../../context/LanguageContext'
 import './ChatHeader.css'
 
-export default function ChatHeader({ onMenuClick, topK, onTopKChange, phoneNumber, onPhoneNumberChange }) {
+export default function ChatHeader({ onMenuClick, topK, onTopKChange }) {
   const { t, lang, setLang, languages } = useLanguage()
+  const [showMenu, setShowMenu] = useState(false)
+  const menuRef = useRef(null)
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowMenu(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [menuRef])
 
   const handleTopKChange = (e) => {
     const value = parseInt(e.target.value) || 5
     onTopKChange(value)
-  }
-
-  const handlePhoneChange = (e) => {
-    const value = e.target.value.replace(/\D/g, '')
-    onPhoneNumberChange(value)
   }
 
   const LANG_LABELS = { en: 'EN', hi: 'हि', te: 'తె' }
@@ -47,33 +55,28 @@ export default function ChatHeader({ onMenuClick, topK, onTopKChange, phoneNumbe
         </div>
 
         {/* Action icons */}
-        <div className="chat-header-actions">
-          <button className="chat-header-btn" title="Video Call"><VideoIcon /></button>
-          <button className="chat-header-btn" title="Call"><PhoneIcon /></button>
-          <button className="chat-header-btn" title="More"><DotsVerticalIcon /></button>
+        <div className="chat-header-actions" ref={menuRef}>
+          <button className="chat-header-btn" title="More" onClick={() => setShowMenu(!showMenu)}>
+            <DotsVerticalIcon />
+          </button>
+
+          {showMenu && (
+            <div className="header-dropdown-menu">
+              <div className="dropdown-item">
+                <label>Top K:</label>
+                <input
+                  type="number"
+                  value={topK}
+                  onChange={handleTopKChange}
+                  min="1"
+                  max="5"
+                  className="dropdown-input topk-input"
+                />
+              </div>
+            </div>
+          )}
         </div>
       </header>
-
-      {/* API info bar (desktop only) */}
-      <div className="api-bar">
-        <span>📱 Phone:</span>
-        <input
-          type="tel"
-          value={phoneNumber}
-          onChange={handlePhoneChange}
-          placeholder="Phone number"
-          className="phone-input"
-          maxLength="15"
-        />
-        <span>🔢 Top K:</span>
-        <input
-          type="number"
-          value={topK}
-          onChange={handleTopKChange}
-          min="1"
-          max="20"
-          className="topk-input" />
-      </div>
     </>
   )
 }
@@ -103,6 +106,15 @@ function DotsVerticalIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
       <circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" />
+    </svg>
+  )
+}
+function NewChatIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+      <line x1="9" y1="10" x2="15" y2="10"></line>
+      <line x1="12" y1="7" x2="12" y2="13"></line>
     </svg>
   )
 }
