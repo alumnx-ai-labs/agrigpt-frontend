@@ -43,12 +43,22 @@ function extractResponse(data) {
   return { type: 'text', content: JSON.stringify(data, null, 2) }
 }
 
-export async function sendTextQuery(phoneNumber, query) {
+export async function sendTextQuery(phoneNumber, query, chatId, language) {
   try {
+    // Format phone number to start with country code (e.g. 91)
+    const formattedPhone = phoneNumber.length === 10 ? `91${phoneNumber}` : phoneNumber
+
     const response = await fetch(`${BASE_URL}${API_CONFIG.ENDPOINTS.WHATSAPP}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phoneNumber, message: query }),
+      body: JSON.stringify({
+        phoneNumber: formattedPhone,
+        phone_number: formattedPhone,
+        message: query,
+        query: query,
+        chatId,
+        language
+      }),
     })
 
     if (!response.ok) {
@@ -64,11 +74,13 @@ export async function sendTextQuery(phoneNumber, query) {
   }
 }
 
-export async function sendImageQuery(imageFile, phoneNumber, query, topK = 5) {
+export async function sendImageQuery(imageFile, phoneNumber, query, topK = 5, chatId, language) {
   const formData = new FormData()
   formData.append('file', imageFile)
   formData.append('phone_number', phoneNumber)
   formData.append('query', query)
+  if (chatId) formData.append('chatId', chatId)
+  if (language) formData.append('language', language)
 
   // In production, use Vercel serverless proxy to avoid HTTPS/HTTP mixed content
   // In development, call backend directly

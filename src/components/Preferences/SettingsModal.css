@@ -1,0 +1,89 @@
+.settings-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease;
+}
+
+.settings-modal {
+    background: #fff;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 360px;
+    padding: 24px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.settings-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.settings-header h3 {
+    margin: 0;
+    color: #333;
+    font-size: 1.25rem;
+}
+
+.settings-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    line-height: 1;
+    color: #888;
+    cursor: pointer;
+}
+
+.settings-close:hover {
+    color: #333;
+}
+
+.settings-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.settings-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.btn-save {
+    background: var(--green-500);
+    color: #fff;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-save:hover {
+    background: var(--green-600);
+}
+
+.btn-logout {
+    background: transparent;
+    color: #e53935;
+    border: 1px solid #e53935;
+    padding: 9px 15px;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-logout:hover {
+    background: #e53935;
+    color: #fff;
+}

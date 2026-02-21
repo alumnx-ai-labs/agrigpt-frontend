@@ -3,17 +3,19 @@ import { useLanguage } from '../../context/LanguageContext'
 import SearchResults from '../SearchResults/SearchResults'
 import './MessageList.css'
 
-/** Format a Date as HH:MM */
+/** Format a Date or timestamp string as HH:MM */
 function formatTime(date) {
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
 /** Welcome message shown when no messages yet */
-function WelcomeCard() {
+function WelcomeCard({ userName }) {
   const { t } = useLanguage()
   return (
     <div className="welcome-card">
-      <h3>{t('welcomeTitle')}</h3>
+      <h3>{userName ? `Hello ${userName} How can I help you Today` : t('welcomeTitle')}</h3>
       <p>{t('welcomeBody')}</p>
       <ul>
         <li><span>💬</span> {t('feat1')}</li>
@@ -30,21 +32,21 @@ function WelcomeCard() {
 function MessageBubble({ message }) {
   const isUser = message.role === 'user'
   const isSearchResults = message.messageType === 'search_results'
-  
+
   return (
     <div className={`message-row ${message.role}`}>
       <div className={`bubble ${isSearchResults ? 'bubble--wide' : ''}`}>
         {message.imageUrl && (
           <img className="bubble-image" src={message.imageUrl} alt="uploaded crop" />
         )}
-        
+
         {/* Render search results */}
         {isSearchResults ? (
           <SearchResults results={message.content} />
         ) : (
           <div className="bubble-text">{message.content}</div>
         )}
-        
+
         <div className="bubble-meta">
           {formatTime(message.timestamp)}
           {isUser && <span className="bubble-tick">✓✓</span>}
@@ -80,7 +82,7 @@ function ErrorBanner({ message, onRetry, onDismiss }) {
   )
 }
 
-export default function MessageList({ messages, isLoading, error, onClearError }) {
+export default function MessageList({ messages, isLoading, error, onClearError, userName }) {
   const bottomRef = useRef(null)
 
   // Auto-scroll to bottom on new messages
@@ -97,7 +99,7 @@ export default function MessageList({ messages, isLoading, error, onClearError }
 
       {/* Welcome card or messages */}
       {messages.length === 0 ? (
-        <WelcomeCard />
+        <WelcomeCard userName={userName} />
       ) : (
         messages.map(msg => <MessageBubble key={msg.id} message={msg} />)
       )}
