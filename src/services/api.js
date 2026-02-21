@@ -82,11 +82,14 @@ export async function sendImageQuery(imageFile, phoneNumber, query, topK = 5, ch
   if (chatId) formData.append('chatId', chatId)
   if (language) formData.append('language', language)
 
+  // Request more results from backend to ensure we have enough valid images after filtering
+  const fetchTopK = topK * 4;
+
   // In production, use Vercel serverless proxy to avoid HTTPS/HTTP mixed content
   // In development, call backend directly
   const imageUrl = API_CONFIG.IMAGE_PROXY
-    ? `${API_CONFIG.IMAGE_PROXY}?top_k=${topK}`
-    : `${IMAGE_BASE_URL}${API_CONFIG.ENDPOINTS.IMAGE_UPLOAD}?top_k=${topK}`
+    ? `${API_CONFIG.IMAGE_PROXY}?top_k=${fetchTopK}`
+    : `${IMAGE_BASE_URL}${API_CONFIG.ENDPOINTS.IMAGE_UPLOAD}?top_k=${fetchTopK}`
 
   console.log('[Image Upload] Sending to:', imageUrl)
   console.log('[Image Upload] Environment:', import.meta.env.PROD ? 'production' : 'development')
@@ -110,6 +113,16 @@ export async function sendImageQuery(imageFile, phoneNumber, query, topK = 5, ch
 
     const data = await response.json()
     console.log('[Image Upload] Success response:', data)
+
+    // Filter out invalid images and limit to the requested topK
+    if (data.results && Array.isArray(data.results)) {
+      const validResults = data.results.filter(result => {
+        const url = result.image_url;
+        return url && typeof url === 'string' && !url.includes('/images/None') && !url.includes('null') && url !== 'None';
+      });
+      data.results = validResults.slice(0, topK);
+    }
+
     return extractResponse(data)
   } catch (error) {
     console.error('[Image Upload] Exception caught:', error)
