@@ -1,124 +1,116 @@
-import axios from 'axios';
+import API_CONFIG from '../config/api.config.js'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const BASE_URL = API_CONFIG.BASE_URL
+const IMAGE_BASE_URL = API_CONFIG.IMAGE_BASE_URL
 
-const api = axios.create({
-  baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+function extractResponse(data) {
+  if (typeof data === 'string') return { type: 'text', content: data }
 
-// Health check
-export const checkHealth = async () => {
-  try {
-    const response = await api.get('/health');
-    return response.data;
-  } catch (error) {
-    throw new Error('Backend is not responding');
+  // Image search results - return structured data
+  if (data.results && Array.isArray(data.results)) {
+    // Check if it's image search results (has image_id or similarity_score)
+    const hasImageFields = data.results.some(r =>
+      r.image_id || r.similarity_score !== undefined || r.image_url
+    )
+
+    if (hasImageFields) {
+      const processedResults = data.results.map(result => {
+        if (result.image_url && import.meta.env.PROD && result.image_url.startsWith('http://13.200.178.118')) {
+          return {
+            ...result,
+            image_url: `/api/image-proxy?url=${encodeURIComponent(result.image_url)}`
+          }
+        }
+        return result
+      })
+      return { type: 'search_results', content: processedResults }
+    }
+
+    // Other array results - format as text
+    const text = data.results.map((r, i) =>
+      `${i + 1}. ${r.disease || r.name || JSON.stringify(r)}`
+    ).join('\n\n')
+    return { type: 'text', content: text }
   }
-};
 
-// Clear knowledge base
-export const clearKnowledgeBase = async () => {
+  // Extract text from common response fields
+  if (data.response) return { type: 'text', content: data.response }
+  if (data.message) return { type: 'text', content: data.message }
+  if (data.answer) return { type: 'text', content: data.answer }
+  if (data.result) return { type: 'text', content: data.result }
+
+  // Fallback to JSON string
+  return { type: 'text', content: JSON.stringify(data, null, 2) }
+}
+
+export async function sendTextQuery(phoneNumber, query) {
   try {
-    const response = await api.delete('/clear-knowledge-base');
-    return response.data;
+    const response = await fetch(`${BASE_URL}${API_CONFIG.ENDPOINTS.WHATSAPP}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phoneNumber, message: query }),
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '')
+      throw new Error(errorText || `Request failed with status ${response.status}`)
+    }
+
+    const data = await response.json()
+    return extractResponse(data)
   } catch (error) {
-    throw new Error(
-      error.response?.data?.detail || 'Failed to clear knowledge base'
-    );
+    console.error('Text query error:', error)
+    throw new Error(`Failed to send query: ${error.message}`)
   }
-};
+}
 
-// ========================================
-// CLIP Image Search APIs
-// ========================================
+export async function sendImageQuery(imageFile, phoneNumber, query, topK = 5) {
+  const formData = new FormData()
+  formData.append('file', imageFile)
+  formData.append('phone_number', phoneNumber)
+  formData.append('query', query)
 
-// Search images by text query (text-to-image)
-export const searchImagesByText = async (query, topK = 5) => {
-  try {
-    const response = await api.post('/hybrid-image-query', {
-      query,
-      top_k: topK
-    });
-    return response.data;
-  } catch (error) {
-    throw new Error(
-      error.response?.data?.detail || 'Failed to search images by text'
-    );
-  }
-};
+  // In production, use Vercel serverless proxy to avoid HTTPS/HTTP mixed content
+  // In development, call backend directly
+  const imageUrl = API_CONFIG.IMAGE_PROXY
+    ? `${API_CONFIG.IMAGE_PROXY}?top_k=${topK}`
+    : `${IMAGE_BASE_URL}${API_CONFIG.ENDPOINTS.IMAGE_UPLOAD}?top_k=${topK}`
 
-// Search similar images by uploading an image (image-to-image)
-export const searchImagesByImage = async (file, topK = 5) => {
-  const formData = new FormData();
-  formData.append('file', file);
-
-  try {
-    const response = await api.post(`/query-by-image?top_k=${topK}`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
-  } catch (error) {
-    throw new Error(
-      error.response?.data?.detail || 'Failed to search images by image'
-    );
-  }
-};
-
-// Query with image and text (multimodal Q&A)
-export const queryWithImageAndText = async (file, query) => {
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('query', query);
+  console.log('[Image Upload] Sending to:', imageUrl)
+  console.log('[Image Upload] Environment:', import.meta.env.PROD ? 'production' : 'development')
+  console.log('[Image Upload] File:', imageFile.name, imageFile.type, imageFile.size, 'bytes')
 
   try {
-    const response = await api.post('/ask-with-image', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
-  } catch (error) {
-    throw new Error(
-      error.response?.data?.detail || 'Failed to query with image'
-    );
-  }
-};
+    const response = await fetch(imageUrl, {
+      method: 'POST',
+      mode: 'cors',
+      body: formData,
+    })
 
-// ========================================
-// Government Schemes APIs
-// ========================================
+    console.log('[Image Upload] Response status:', response.status, response.statusText)
+    console.log('[Image Upload] Response headers:', Object.fromEntries(response.headers.entries()))
 
-// Query government schemes (text RAG)
-export const queryGovernmentSchemes = async (query, chatHistory = []) => {
-  try {
-    const response = await api.post('/query-government-schemes', {
-      query,
-      chat_history: chatHistory
-    });
-    return response.data;
-  } catch (error) {
-    throw new Error(
-      error.response?.data?.detail || 'Failed to query government schemes'
-    );
-  }
-};
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '')
+      console.error('[Image Upload] Error response:', errorText)
+      throw new Error(errorText || `Upload failed with status ${response.status}`)
+    }
 
-// Query citrus crop consultant (text RAG)
-export const askCropConsultant = async (query, chatHistory = []) => {
-  try {
-    const response = await api.post('/ask-consultant', {
-      query,
-      chat_history: chatHistory
-    });
-    return response.data;
+    const data = await response.json()
+    console.log('[Image Upload] Success response:', data)
+    return extractResponse(data)
   } catch (error) {
-    throw new Error(
-      error.response?.data?.detail || 'Failed to get consultant response'
-    );
+    console.error('[Image Upload] Exception caught:', error)
+    console.error('[Image Upload] Error stack:', error.stack)
+
+    if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+      throw new Error('Cannot connect to image server. Please check if the backend is accessible and CORS is properly configured.')
+    }
+
+    if (error.message.includes('NOT_FOUND') || error.message.includes('404')) {
+      throw new Error('Image upload endpoint not found. The proxy route may not be configured correctly.')
+    }
+
+    throw new Error(`Failed to upload image: ${error.message}`)
   }
-};
+}

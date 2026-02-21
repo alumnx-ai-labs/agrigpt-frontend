@@ -1,0 +1,170 @@
+/* ─── Message Input Area ────────────────────────────────────────────────── */
+.msg-input-area {
+  display: flex;
+  flex-direction: column;
+  background: var(--clr-surface);
+  border-top: 1px solid var(--clr-border);
+  padding: 10px 12px;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ── Image preview ── */
+.msg-input__preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--clr-bg);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  animation: fadeIn 0.2s ease;
+}
+
+.msg-input__preview-img {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--clr-border);
+}
+
+.msg-input__preview-actions {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.preview-btn {
+  flex: 1;
+  min-width: 120px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+  transition: all var(--transition);
+}
+
+.preview-btn--retake {
+  background: var(--clr-red);
+  color: #fff;
+}
+
+.preview-btn--retake:hover {
+  background: #b71c1c;
+}
+
+.preview-btn--use {
+  background: var(--clr-green);
+  color: #fff;
+}
+
+.preview-btn--use:hover {
+  background: var(--clr-forest);
+}
+
+.preview-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Input row ── */
+.msg-input__row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.msg-input__attach-group {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.msg-input__icon-btn {
+  width: 40px;
+  height: 40px;
+  background: var(--clr-bg);
+  border: 1px solid var(--clr-border);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all var(--transition);
+  flex-shrink: 0;
+}
+
+.msg-input__icon-btn:hover:not(:disabled) {
+  background: var(--clr-pale);
+  border-color: var(--clr-mid);
+  transform: scale(1.05);
+}
+
+.msg-input__icon-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Textarea ── */
+.msg-input__textarea {
+  flex: 1;
+  background: var(--clr-bg);
+  border: 1.5px solid var(--clr-border);
+  border-radius: var(--radius-xl);
+  padding: 10px 16px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--clr-text);
+  resize: none;
+  outline: none;
+  line-height: 1.5;
+  min-height: 42px;
+  max-height: 120px;
+  transition: border-color var(--transition);
+}
+
+.msg-input__textarea::placeholder { color: var(--clr-muted); }
+
+.msg-input__textarea:focus {
+  border-color: var(--clr-mid);
+  background: #fff;
+}
+
+.msg-input__textarea:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Send button ── */
+.msg-input__send {
+  width: 42px;
+  height: 42px;
+  background: var(--clr-border);
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  cursor: pointer;
+  flex-shrink: 0;
+  color: var(--clr-muted);
+  transition: all var(--transition);
+}
+
+.msg-input__send--active {
+  background: var(--clr-green);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(45,106,79,0.35);
+}
+
+.msg-input__send--active:hover {
+  background: var(--clr-forest);
+  transform: scale(1.08);
+}
+
+.msg-input__send:disabled { cursor: not-allowed; }
