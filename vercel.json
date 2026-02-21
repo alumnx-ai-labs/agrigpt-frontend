@@ -4,6 +4,10 @@
     "framework": "vite",
     "rewrites": [
         {
+            "source": "/api/agent/:path*",
+            "destination": "https://newapi.alumnx.com/agrigpt/agent/:path*"
+        },
+        {
             "source": "/api/:path*",
             "destination": "/api/:path*"
         }

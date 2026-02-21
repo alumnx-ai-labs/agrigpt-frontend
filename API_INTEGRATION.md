@@ -6,13 +6,13 @@ This document describes the integration between the FarmChat frontend and the Ag
 
 ## Backend API
 
-**Base URL:** `https://newapi.alumnx.com/agrigpt/fastapi`
+**Base URL:** `https://newapi.alumnx.com/agrigpt/agent`
 
-**Documentation:** [https://newapi.alumnx.com/agrigpt/fastapi/docs](https://newapi.alumnx.com/agrigpt/fastapi/docs)
+**Documentation:** [https://newapi.alumnx.com/agrigpt/agent/docs](https://newapi.alumnx.com/agrigpt/agent/docs)
 
 ## Endpoints
 
-### POST `/whatsapp`
+### POST `/test/chat`
 
 Main endpoint to handle incoming messages and interact with the AI agent.
 
@@ -108,7 +108,7 @@ For image queries, the frontend:
 
 1. Converts the image to base64 format
 2. Creates a structured message with image data
-3. Sends it as a JSON-stringified message to the `/whatsapp` endpoint
+3. Sends it as a JSON-stringified message to the `/test/chat` endpoint
 4. Falls back to FormData approach if the primary method fails
 
 **Image Message Format:**
@@ -172,7 +172,7 @@ console.log(localStorage.getItem('agrigpt_phone_number'))
 
 ## Known Limitations
 
-1. The API documentation shows only the `/whatsapp` endpoint
+1. The API documentation shows the primary endpoint `/test/chat`
 2. Image handling uses a custom format (base64 in message) that may require backend support
 3. If image uploads fail, check if the backend has an undocumented `/query-image-upload` endpoint
 
