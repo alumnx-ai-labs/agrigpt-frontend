@@ -1,0 +1,46 @@
+/* ===== GLOBAL STYLES – FarmChat ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --green-900: #1a2e1a;
+  --green-800: #1f3d1f;
+  --green-700: #2d5a2d;
+  --green-600: #3a7a3a;
+  --green-500: #4caf50;
+  --green-400: #66bb6a;
+  --green-300: #a5d6a7;
+  --green-100: #e8f5e9;
+  --green-50:  #f1f8f1;
+
+  --red-500: #e53935;
+  --red-600: #c62828;
+  --amber-500: #ffc107;
+
+  --bg-chat: #d4edda;
+  --bg-sidebar: #1a2e1a;
+  --bg-header: #2d5a2d;
+  --bubble-user: #dcf8c6;
+  --bubble-ai: #ffffff;
+  --text-primary: #1a1a1a;
+  --text-secondary: #555;
+  --text-muted: #888;
+  --border: rgba(0,0,0,0.08);
+  --shadow: 0 2px 12px rgba(0,0,0,0.1);
+  --radius: 12px;
+  --radius-sm: 8px;
+
+  font-family: 'Sora', sans-serif;
+  font-size: 15px;
+  color: var(--text-primary);
+}
+
+body { background: var(--bg-sidebar); height: 100dvh; overflow: hidden; }
+#root { height: 100dvh; display: flex; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 99px; }
+
+/* Utility */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); }
