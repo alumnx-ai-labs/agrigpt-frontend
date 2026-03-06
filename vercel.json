@@ -1,35 +1,43 @@
 {
-    "installCommand": "npm install --legacy-peer-deps",
-    "buildCommand": "npm run build",
-    "outputDirectory": "dist",
-    "framework": "vite",
-    "rewrites": [
+  "installCommand": "npm install --legacy-peer-deps",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/api/agent/:path*",
+      "destination": "https://newapi.alumnx.com/agrigpt/agent/:path*"
+    },
+    {
+      "source": "/api/cv/:path*",
+      "destination": "https://newapi.alumnx.com/agrigpt/cv/:path*"
+    },
+    {
+      "source": "/api/speech/:path*",
+      "destination": "https://newapi.alumnx.com/agrigpt/speech/:path*"
+    },
+    {
+      "source": "/api/:path*",
+      "destination": "/api/:path*"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
         {
-            "source": "/api/agent/:path*",
-            "destination": "https://newapi.alumnx.com/agrigpt/agent/:path*"
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
         },
         {
-            "source": "/api/:path*",
-            "destination": "/api/:path*"
-        }
-    ],
-    "headers": [
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, PUT, DELETE, OPTIONS"
+        },
         {
-            "source": "/api/(.*)",
-            "headers": [
-                {
-                    "key": "Access-Control-Allow-Origin",
-                    "value": "*"
-                },
-                {
-                    "key": "Access-Control-Allow-Methods",
-                    "value": "GET, POST, PUT, DELETE, OPTIONS"
-                },
-                {
-                    "key": "Access-Control-Allow-Headers",
-                    "value": "Content-Type, Authorization"
-                }
-            ]
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type, Authorization"
         }
-    ]
+      ]
+    }
+  ]
 }
