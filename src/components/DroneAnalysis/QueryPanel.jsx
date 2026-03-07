@@ -27,7 +27,13 @@ export default function QueryPanel({ frame, markers }) {
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
 
-  const canAsk = frame && markers.length >= 3 && question.trim() && !isAsking;
+  const canAsk =
+    frame &&
+    markers.length >= 3 &&
+    (typeof question === "string"
+      ? question.trim()
+      : question?.english || question?.native) &&
+    !isAsking;
 
   /* Auto-scroll to latest entry */
   useEffect(() => {
