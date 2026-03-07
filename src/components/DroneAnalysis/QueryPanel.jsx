@@ -157,8 +157,17 @@ export default function QueryPanel({ frame, markers }) {
 
     try {
       const points = markers.map((m) => [m.x, m.y]);
-      // Send English question to backend, along with language
-      const result = await queryFrame(frame.frame_id, points, q, lang);
+      // Send pre-computed GPS coords if available (avoids pixel→GPS recomputation on backend)
+      const gpsPoints = markers.every((m) => m.lat != null && m.lon != null)
+        ? markers.map((m) => [m.lat, m.lon])
+        : null;
+      const result = await queryFrame(
+        frame.frame_id,
+        points,
+        q,
+        lang,
+        gpsPoints,
+      );
       setConversation((prev) =>
         prev.map((entry) =>
           entry.id === id
@@ -315,85 +324,22 @@ function ConversationEntry({ entry }) {
   );
 }
 
-/* ── Parse answer string into structured sections ──────────── */
+/* ── Render answer as plain paragraphs ──────────────────────── */
 function StructuredAnswer({ text }) {
   if (!text) return null;
-
-  /* Try to detect structured key:value lines */
-  const lines = text
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean);
-
-  /* Group lines into sections by detecting section headers */
-  const sections = [];
-  let currentSection = null;
-
-  const SECTION_PATTERNS = [
-    { re: /area|region|size|sq/i, icon: "📐", label: "Area" },
-    { re: /plant|tree|crop|mango|count/i, icon: "🌱", label: "Plant Count" },
-    { re: /fertilizer|urea|dap|npk/i, icon: "🧪", label: "Fertilizer" },
-    { re: /manure|compost|organic/i, icon: "🪣", label: "Manure" },
-    { re: /gsd|altitude|camera|sensor/i, icon: "📡", label: "Telemetry" },
-  ];
-
-  for (const line of lines) {
-    const match = SECTION_PATTERNS.find((p) => p.re.test(line));
-    if (match && !currentSection) {
-      currentSection = { ...match, lines: [line] };
-    } else if (currentSection) {
-      currentSection.lines.push(line);
-      if (line === "" || lines.indexOf(line) === lines.length - 1) {
-        sections.push(currentSection);
-        currentSection = null;
-      }
-    } else {
-      sections.push({ icon: "ℹ️", label: null, lines: [line] });
-    }
-  }
-  if (currentSection) sections.push(currentSection);
-
-  /* If no structure detected, just render as plain text */
-  if (sections.length === 0) {
-    return <p className="answer-plain">{text}</p>;
-  }
-
-  /* Render as cards */
   return (
-    <div className="answer-cards">
-      {sections.map((sec, i) => (
-        <div key={i} className="answer-card">
-          {sec.label && (
-            <div className="answer-card__header">
-              <span className="answer-card__icon">{sec.icon}</span>
-              <span className="answer-card__label">{sec.label}</span>
-            </div>
-          )}
-          <div className="answer-card__body">
-            {sec.lines.map((l, j) => (
-              <AnswerLine key={j} text={l} />
-            ))}
-          </div>
-        </div>
-      ))}
+    <div className="answer-plain-wrap">
+      {text
+        .split("\n")
+        .map((l) => l.trim())
+        .filter(Boolean)
+        .map((line, i) => (
+          <p key={i} className="answer-line">
+            {line}
+          </p>
+        ))}
     </div>
   );
-}
-
-/* Bold the value in "Key: value" lines */
-function AnswerLine({ text }) {
-  const colonIdx = text.indexOf(":");
-  if (colonIdx > 0 && colonIdx < 40) {
-    const key = text.slice(0, colonIdx + 1);
-    const val = text.slice(colonIdx + 1);
-    return (
-      <p className="answer-line">
-        <span className="answer-line__key">{key}</span>
-        <span className="answer-line__val">{val}</span>
-      </p>
-    );
-  }
-  return <p className="answer-line">{text}</p>;
 }
 
 function Spinner() {
