@@ -9,10 +9,11 @@
  *  - Auto-scroll to latest answer
  *  - Annotated image shown inline, togglable
  *  - Clear conversation button
+ *  - Voice input with speech service integration (multilingual support)
  */
 
 import React, { useState, useRef, useEffect } from "react";
-import { queryFrame } from "../../services/droneApi";
+import { queryFrame, speechToText } from "../../services/droneApi";
 import { useLanguage } from "../../context/LanguageContext";
 
 export default function QueryPanel({ frame, markers }) {
@@ -23,32 +24,8 @@ export default function QueryPanel({ frame, markers }) {
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
   const { lang } = useLanguage();
-
-  const toggleListening = () => {
-    if (isListening) {
-      setIsListening(false);
-      return;
-    }
-    const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert("Voice recognition is not supported in this browser.");
-      return;
-    }
-    const recognition = new SpeechRecognition();
-    const langMap = { en: "en-US", hi: "hi-IN", te: "te-IN" };
-    recognition.lang = langMap[lang] || "en-US";
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-    recognition.onstart = () => setIsListening(true);
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      setQuestion((prev) => (prev ? prev + " " + transcript : transcript));
-    };
-    recognition.onerror = () => setIsListening(false);
-    recognition.onend = () => setIsListening(false);
-    recognition.start();
-  };
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
 
   const canAsk = frame && markers.length >= 3 && question.trim() && !isAsking;
 
@@ -69,11 +46,92 @@ export default function QueryPanel({ frame, markers }) {
       ? `Place ${3 - markers.length} more marker${3 - markers.length !== 1 ? "s" : ""} to define the region`
       : null;
 
+  /**
+   * Toggle voice recording using MediaRecorder API
+   * Records audio and sends to speech service for transcription + translation
+   */
+  const toggleListening = async () => {
+    // Stop recording if already listening
+    if (isListening && mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+      setIsListening(false);
+      return;
+    }
+
+    // Check for MediaRecorder support
+    if (!window.MediaRecorder) {
+      alert("Voice recording is not supported in this browser.");
+      return;
+    }
+
+    try {
+      // Request microphone access
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      // Determine supported MIME type
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm")
+        ? "audio/webm"
+        : MediaRecorder.isTypeSupported("audio/ogg")
+          ? "audio/ogg"
+          : "audio/wav";
+
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        // Stop all audio tracks
+        stream.getTracks().forEach((track) => track.stop());
+
+        // Create audio blob
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+
+        // Send to speech service
+        try {
+          const result = await speechToText(audioBlob, lang);
+
+          // Use english_text for processing, native_text for display
+          const nativeText = result.native_text || result.transcript || "";
+          const englishText = result.english_text || result.transcript || "";
+
+          // Display native text in input, but we'll send english to backend
+          setQuestion(
+            englishText && englishText !== nativeText
+              ? { native: nativeText, english: englishText }
+              : nativeText,
+          );
+        } catch (err) {
+          console.error("Speech-to-text error:", err);
+          alert("Failed to transcribe audio. Please try again.");
+        }
+      };
+
+      mediaRecorder.start();
+      setIsListening(true);
+    } catch (err) {
+      console.error("Microphone access error:", err);
+      alert("Microphone access denied. Please enable microphone permissions.");
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!canAsk) return;
 
-    const q = question.trim();
+    // Handle question - might be string or object with native/english versions
+    let q =
+      typeof question === "string"
+        ? question.trim()
+        : question.english || question.native;
+    const nativeQ = typeof question === "object" ? question.native : q;
+    const displayQ = nativeQ || q;
+
     const id = Date.now();
     setQuestion("");
     setIsAsking(true);
@@ -83,7 +141,7 @@ export default function QueryPanel({ frame, markers }) {
       ...prev,
       {
         id,
-        question: q,
+        question: displayQ,
         answer: null,
         annotatedImg: null,
         loading: true,
@@ -93,7 +151,8 @@ export default function QueryPanel({ frame, markers }) {
 
     try {
       const points = markers.map((m) => [m.x, m.y]);
-      const result = await queryFrame(frame.frame_id, points, q);
+      // Send English question to backend, along with language
+      const result = await queryFrame(frame.frame_id, points, q, lang);
       setConversation((prev) =>
         prev.map((entry) =>
           entry.id === id
@@ -148,7 +207,9 @@ export default function QueryPanel({ frame, markers }) {
                 ? hint
                 : "Ask anything — area, plant count, fertilizer, manure…"
           }
-          value={question}
+          value={
+            typeof question === "string" ? question : question?.native || ""
+          }
           onChange={(e) => setQuestion(e.target.value)}
           disabled={isAsking || !frame || markers.length < 3}
         />
@@ -170,6 +231,14 @@ export default function QueryPanel({ frame, markers }) {
       {/* ── Hint when not ready ───────────────────────────────── */}
       {hint && conversation.length === 0 && (
         <p className="query-panel__hint">{hint}</p>
+      )}
+
+      {/* ── Language indicator for non-English ────────────────── */}
+      {lang !== "en" && (
+        <p className="query-panel__lang-hint">
+          🌐 Voice input in {lang === "hi" ? "Hindi" : "Telugu"} will be
+          translated automatically
+        </p>
       )}
 
       {/* ── Conversation ─────────────────────────────────────── */}
