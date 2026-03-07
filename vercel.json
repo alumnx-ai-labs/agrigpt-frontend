@@ -13,6 +13,9 @@
       "dest": "https://newapi.alumnx.com/agrigpt/speech/$1"
     },
     {
+      "handle": "filesystem"
+    },
+    {
       "src": "/(.*)",
       "dest": "/index.html"
     }
