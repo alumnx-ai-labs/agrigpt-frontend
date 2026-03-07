@@ -173,29 +173,6 @@ export default function FrameCanvas({
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(label, px, py);
-
-      // Coordinate tag below the marker (when GPS available)
-      if (m.lat != null && m.lon != null) {
-        const coordText = `${m.lat.toFixed(6)}, ${m.lon.toFixed(6)}`;
-        ctx.font = "8.5px monospace";
-        const tw = ctx.measureText(coordText).width;
-        const tagW = tw + 10;
-        const tagH = 14;
-        const tagX = px - tagW / 2;
-        const tagY = py + r + 4;
-
-        // Pill background
-        ctx.fillStyle = "rgba(0, 0, 0, 0.72)";
-        ctx.beginPath();
-        ctx.roundRect(tagX, tagY, tagW, tagH, 3);
-        ctx.fill();
-
-        // Coordinate text in teal
-        ctx.fillStyle = "#4dffb0";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(coordText, px, tagY + tagH / 2);
-      }
     });
   }, [markers]);
 
@@ -372,11 +349,6 @@ export default function FrameCanvas({
                 Marker {pendingMarker.label}
               </div>
             </div>
-          </div>
-
-          {/* Coordinates row */}
-          <div className="gps-popup__coords-row">
-            {pendingMarker.lat}, {pendingMarker.lon}
           </div>
 
           {/* Action buttons */}
