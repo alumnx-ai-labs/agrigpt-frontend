@@ -58,11 +58,24 @@ export const listFrames = (video_id) =>
  * @param {string} lang - Language code: en, hi, te (default: en)
  * @returns {Promise<{ answer: string, annotated_b64: string, telemetry: object, lang: string }>}
  */
-export const queryFrame = (frame_id, points, question, lang = "en") =>
+export const queryFrame = (
+  frame_id,
+  points,
+  question,
+  lang = "en",
+  gpsPoints = null,
+) =>
   fetch(`${BASE}/image-query/query`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ frame_id, points, question, use_llm: true, lang }),
+    body: JSON.stringify({
+      frame_id,
+      points,
+      question,
+      use_llm: true,
+      lang,
+      gps_points: gpsPoints,
+    }),
   }).then((r) => {
     if (!r.ok) throw new Error(`Query failed: ${r.status}`);
     return r.json();
