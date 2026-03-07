@@ -13,7 +13,7 @@
  */
 
 import React, { useState, useRef, useEffect } from "react";
-import { queryFrame } from "../../services/droneApi";
+import { queryFrame, translateText } from "../../services/droneApi";
 import { useLanguage } from "../../context/LanguageContext";
 
 const LANG_MAP = { en: "en-US", hi: "hi-IN", te: "te-IN" };
@@ -131,10 +131,22 @@ export default function QueryPanel({ frame, markers }) {
       const gpsPoints = markers.every((m) => m.lat != null && m.lon != null)
         ? markers.map((m) => [m.lat, m.lon])
         : null;
+
+      // Translate question to English before sending if user is in a non-English language
+      let englishQ = q;
+      if (lang !== "en") {
+        try {
+          const t = await translateText(q, "en", lang);
+          englishQ = t.translated_text || q;
+        } catch {
+          englishQ = q; // fallback to native if translation fails
+        }
+      }
+
       const result = await queryFrame(
         frame.frame_id,
         points,
-        q,
+        englishQ,
         lang,
         gpsPoints,
       );
