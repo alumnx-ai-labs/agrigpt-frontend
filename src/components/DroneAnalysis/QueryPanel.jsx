@@ -13,8 +13,10 @@
  */
 
 import React, { useState, useRef, useEffect } from "react";
-import { queryFrame, speechToText } from "../../services/droneApi";
+import { queryFrame, translateText } from "../../services/droneApi";
 import { useLanguage } from "../../context/LanguageContext";
+
+const LANG_MAP = { en: "en-US", hi: "hi-IN", te: "te-IN" };
 
 export default function QueryPanel({ frame, markers }) {
   const [question, setQuestion] = useState("");
@@ -24,8 +26,7 @@ export default function QueryPanel({ frame, markers }) {
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
   const { lang } = useLanguage();
-  const mediaRecorderRef = useRef(null);
-  const audioChunksRef = useRef([]);
+  const recognitionRef = useRef(null);
 
   const canAsk =
     frame &&
@@ -53,77 +54,46 @@ export default function QueryPanel({ frame, markers }) {
       : null;
 
   /**
-   * Toggle voice recording using MediaRecorder API
-   * Records audio and sends to speech service for transcription + translation
+   * Toggle voice input using the browser's native Web Speech API.
+   * No backend call, no FFmpeg needed — works in all modern browsers.
    */
-  const toggleListening = async () => {
-    // Stop recording if already listening
-    if (isListening && mediaRecorderRef.current) {
-      mediaRecorderRef.current.stop();
+  const toggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
       setIsListening(false);
       return;
     }
 
-    // Check for MediaRecorder support
-    if (!window.MediaRecorder) {
-      alert("Voice recording is not supported in this browser.");
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Voice recognition is not supported in this browser.");
       return;
     }
 
-    try {
-      // Request microphone access
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const recognition = new SpeechRecognition();
+    recognition.lang = LANG_MAP[lang] || "en-US";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognitionRef.current = recognition;
 
-      // Determine supported MIME type
-      const mimeType = MediaRecorder.isTypeSupported("audio/webm")
-        ? "audio/webm"
-        : MediaRecorder.isTypeSupported("audio/ogg")
-          ? "audio/ogg"
-          : "audio/wav";
+    recognition.onstart = () => setIsListening(true);
 
-      const mediaRecorder = new MediaRecorder(stream, { mimeType });
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setQuestion((prev) =>
+        typeof prev === "string" && prev ? prev + " " + transcript : transcript,
+      );
+    };
 
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
+    recognition.onerror = (event) => {
+      console.error("Speech recognition error:", event.error);
+      setIsListening(false);
+    };
 
-      mediaRecorder.onstop = async () => {
-        // Stop all audio tracks
-        stream.getTracks().forEach((track) => track.stop());
+    recognition.onend = () => setIsListening(false);
 
-        // Create audio blob
-        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
-
-        // Send to speech service
-        try {
-          const result = await speechToText(audioBlob, lang);
-
-          // Use english_text for processing, native_text for display
-          const nativeText = result.native_text || result.transcript || "";
-          const englishText = result.english_text || result.transcript || "";
-
-          // Display native text in input, but we'll send english to backend
-          setQuestion(
-            englishText && englishText !== nativeText
-              ? { native: nativeText, english: englishText }
-              : nativeText,
-          );
-        } catch (err) {
-          console.error("Speech-to-text error:", err);
-          alert("Failed to transcribe audio. Please try again.");
-        }
-      };
-
-      mediaRecorder.start();
-      setIsListening(true);
-    } catch (err) {
-      console.error("Microphone access error:", err);
-      alert("Microphone access denied. Please enable microphone permissions.");
-    }
+    recognition.start();
   };
 
   const handleSubmit = async (e) => {
@@ -161,10 +131,22 @@ export default function QueryPanel({ frame, markers }) {
       const gpsPoints = markers.every((m) => m.lat != null && m.lon != null)
         ? markers.map((m) => [m.lat, m.lon])
         : null;
+
+      // Translate question to English before sending if user is in a non-English language
+      let englishQ = q;
+      if (lang !== "en") {
+        try {
+          const t = await translateText(q, "en", lang);
+          englishQ = t.translated_text || q;
+        } catch {
+          englishQ = q; // fallback to native if translation fails
+        }
+      }
+
       const result = await queryFrame(
         frame.frame_id,
         points,
-        q,
+        englishQ,
         lang,
         gpsPoints,
       );

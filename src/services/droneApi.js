@@ -98,7 +98,10 @@ export const speechToText = async (audioBlob, lang = "en") => {
   });
 
   if (!response.ok) {
-    throw new Error(`Speech-to-text failed: ${response.status}`);
+    const detail = await response.json().catch(() => ({}));
+    throw new Error(
+      `Speech-to-text failed: ${response.status} — ${detail.detail || "unknown error"}`,
+    );
   }
 
   return response.json();
