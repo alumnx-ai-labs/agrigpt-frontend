@@ -1,128 +1,120 @@
-import API_CONFIG from '../config/api.config.js'
+import API_CONFIG from "../config/api.config.js";
 
-const BASE_URL = API_CONFIG.BASE_URL
-const IMAGE_BASE_URL = API_CONFIG.IMAGE_BASE_URL
+const BASE_URL = API_CONFIG.BASE_URL;
+const IMAGE_BASE_URL = API_CONFIG.IMAGE_BASE_URL;
 
 function extractResponse(data) {
-  if (typeof data === 'string') return { type: 'text', content: data }
+  if (typeof data === "string")
+    return { type: "text", content: data, sources: [] };
 
-  // Image search results - return structured data
+  // Image search results
   if (data.results && Array.isArray(data.results)) {
-    // Check if it's image search results (has image_id or similarity_score)
-    const hasImageFields = data.results.some(r =>
-      r.image_id || r.similarity_score !== undefined || r.image_url
-    )
-
+    const hasImageFields = data.results.some(
+      (r) => r.image_id || r.similarity_score !== undefined || r.image_url,
+    );
     if (hasImageFields) {
-      const processedResults = data.results.map(result => {
-        if (result.image_url && import.meta.env.PROD && result.image_url.startsWith('http://13.200.178.118')) {
-          return {
-            ...result,
-            image_url: `/api/image-proxy?url=${encodeURIComponent(result.image_url)}`
-          }
-        }
-        return result
-      })
-      return { type: 'search_results', content: processedResults }
+      return {
+        type: "search_results",
+        content: data.results,
+        sources: data.sources || [],
+      };
     }
-
-    // Other array results - format as text
-    const text = data.results.map((r, i) =>
-      `${i + 1}. ${r.disease || r.name || JSON.stringify(r)}`
-    ).join('\n\n')
-    return { type: 'text', content: text }
+    const text = data.results
+      .map((r, i) => `${i + 1}. ${r.disease || r.name || JSON.stringify(r)}`)
+      .join("\n\n");
+    return { type: "text", content: text, sources: data.sources || [] };
   }
 
-  // Extract text from common response fields
-  if (data.response) return { type: 'text', content: data.response }
-  if (data.message) return { type: 'text', content: data.message }
-  if (data.answer) return { type: 'text', content: data.answer }
-  if (data.result) return { type: 'text', content: data.result }
+  // Extract text + sources from agent response
+  const sources =
+    data.sources || data.references || data.source_documents || [];
+  if (data.response) return { type: "text", content: data.response, sources };
+  if (data.output) return { type: "text", content: data.output, sources };
+  if (data.text) return { type: "text", content: data.text, sources };
+  if (data.message) return { type: "text", content: data.message, sources };
+  if (data.answer) return { type: "text", content: data.answer, sources };
+  if (data.result) return { type: "text", content: data.result, sources };
 
-  // Fallback to JSON string
-  return { type: 'text', content: JSON.stringify(data, null, 2) }
+  return { type: "text", content: JSON.stringify(data, null, 2), sources: [] };
 }
 
 export async function sendTextQuery(phoneNumber, query, chatId, language) {
   try {
-    // Format phone number to start with country code (e.g. 91)
-    const formattedPhone = phoneNumber.length === 10 ? `91${phoneNumber}` : phoneNumber
+    const formattedPhone =
+      phoneNumber.length === 10 ? `91${phoneNumber}` : phoneNumber;
 
-    const response = await fetch(`${BASE_URL}${API_CONFIG.ENDPOINTS.WHATSAPP}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        phoneNumber: formattedPhone,
-        phone_number: formattedPhone,
-        message: query,
-        query: query,
-        chatId,
-        language
-      }),
-    })
+    const response = await fetch(
+      `${BASE_URL}${API_CONFIG.ENDPOINTS.WHATSAPP}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phoneNumber: formattedPhone,
+          phone_number: formattedPhone,
+          message: query,
+          chatId,
+          language,
+        }),
+      },
+    );
 
     if (!response.ok) {
-      const errorText = await response.text().catch(() => '')
-      throw new Error(errorText || `Request failed with status ${response.status}`)
+      const errorText = await response.text().catch(() => "");
+      throw new Error(
+        errorText || `Request failed with status ${response.status}`,
+      );
     }
 
-    const data = await response.json()
-    return extractResponse(data)
+    const data = await response.json();
+    return extractResponse(data);
   } catch (error) {
-    console.error('Text query error:', error)
-    throw new Error(`Failed to send query: ${error.message}`)
+    console.error("Text query error:", error);
+    throw new Error(`Failed to send query: ${error.message}`);
   }
 }
 
-export async function sendImageQuery(imageFile, phoneNumber, query, topK = 5, chatId, language) {
-  const formData = new FormData()
-  formData.append('file', imageFile)
-  formData.append('phone_number', phoneNumber)
-  formData.append('query', query)
-  if (chatId) formData.append('chatId', chatId)
-  if (language) formData.append('language', language)
+export async function sendImageQuery(
+  imageFile,
+  phoneNumber,
+  query,
+  topK = 5,
+  chatId,
+  language,
+) {
+  const formData = new FormData();
+  formData.append("file", imageFile);
+  formData.append("phone_number", phoneNumber);
+  formData.append("query", query);
+  if (chatId) formData.append("chatId", chatId);
+  if (language) formData.append("language", language);
 
-  // In production, use Vercel serverless proxy to avoid HTTPS/HTTP mixed content
-  // In development, call backend directly
-  const imageUrl = API_CONFIG.IMAGE_PROXY
-    ? `${API_CONFIG.IMAGE_PROXY}?top_k=${topK}`
-    : `${IMAGE_BASE_URL}${API_CONFIG.ENDPOINTS.IMAGE_UPLOAD}?top_k=${topK}`
-
-  console.log('[Image Upload] Sending to:', imageUrl)
-  console.log('[Image Upload] Environment:', import.meta.env.PROD ? 'production' : 'development')
-  console.log('[Image Upload] File:', imageFile.name, imageFile.type, imageFile.size, 'bytes')
+  const imageUrl = `${IMAGE_BASE_URL}${API_CONFIG.ENDPOINTS.IMAGE_UPLOAD}?top_k=${topK}`;
 
   try {
     const response = await fetch(imageUrl, {
-      method: 'POST',
-      mode: 'cors',
+      method: "POST",
+      mode: "cors",
       body: formData,
-    })
-
-    console.log('[Image Upload] Response status:', response.status, response.statusText)
-    console.log('[Image Upload] Response headers:', Object.fromEntries(response.headers.entries()))
+    });
 
     if (!response.ok) {
-      const errorText = await response.text().catch(() => '')
-      console.error('[Image Upload] Error response:', errorText)
-      throw new Error(errorText || `Upload failed with status ${response.status}`)
+      const errorText = await response.text().catch(() => "");
+      throw new Error(
+        errorText || `Upload failed with status ${response.status}`,
+      );
     }
 
-    const data = await response.json()
-    console.log('[Image Upload] Success response:', data)
-    return extractResponse(data)
+    const data = await response.json();
+    return extractResponse(data);
   } catch (error) {
-    console.error('[Image Upload] Exception caught:', error)
-    console.error('[Image Upload] Error stack:', error.stack)
-
-    if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-      throw new Error('Cannot connect to image server. Please check if the backend is accessible and CORS is properly configured.')
+    if (
+      error.message.includes("Failed to fetch") ||
+      error.message.includes("NetworkError")
+    ) {
+      throw new Error(
+        "Cannot connect to image server. Check backend accessibility and CORS.",
+      );
     }
-
-    if (error.message.includes('NOT_FOUND') || error.message.includes('404')) {
-      throw new Error('Image upload endpoint not found. The proxy route may not be configured correctly.')
-    }
-
-    throw new Error(`Failed to upload image: ${error.message}`)
+    throw new Error(`Failed to upload image: ${error.message}`);
   }
 }

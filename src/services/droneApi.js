@@ -6,6 +6,7 @@
 import { API_CONFIG } from "../config/api.config";
 
 const BASE = API_CONFIG.DRONE_BASE_URL;
+const SPEECH_BASE = API_CONFIG.SPEECH_BASE_URL;
 
 /**
  * Capture the current video frame at the given timestamp.
@@ -53,15 +54,65 @@ export const listFrames = (video_id) =>
  * Query a captured frame with optional 4-point polygon markers.
  * @param {string} frame_id
  * @param {Array<[number, number]>} points - Up to 4 [x, y] pairs in original image coords
- * @param {string} question - Natural-language question
- * @returns {Promise<{ answer: string, annotated_b64: string, telemetry: object }>}
+ * @param {string} question - Natural-language question (in English)
+ * @param {string} lang - Language code: en, hi, te (default: en)
+ * @returns {Promise<{ answer: string, annotated_b64: string, telemetry: object, lang: string }>}
  */
-export const queryFrame = (frame_id, points, question) =>
+export const queryFrame = (frame_id, points, question, lang = "en") =>
   fetch(`${BASE}/image-query/query`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ frame_id, points, question, use_llm: false }),
+    body: JSON.stringify({ frame_id, points, question, use_llm: true, lang }),
   }).then((r) => {
     if (!r.ok) throw new Error(`Query failed: ${r.status}`);
     return r.json();
   });
+
+/**
+ * Transcribe audio using speech service.
+ * @param {Blob} audioBlob - Audio blob (WebM/WAV/OGG)
+ * @param {string} lang - Language code: en, hi, te
+ * @returns {Promise<{ native_text: string, english_text: string, transcript: string }>}
+ */
+export const speechToText = async (audioBlob, lang = "en") => {
+  const formData = new FormData();
+  formData.append("file", audioBlob, "recording.webm");
+  formData.append("lang", lang);
+
+  const response = await fetch(`${SPEECH_BASE}/speech-to-text`, {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Speech-to-text failed: ${response.status}`);
+  }
+
+  return response.json();
+};
+
+/**
+ * Translate text using speech service.
+ * @param {string} text - Text to translate
+ * @param {string} targetLang - Target language code: en, hi, te
+ * @param {string} sourceLang - Source language code (default: en)
+ * @returns {Promise<{ translated_text: string }>}
+ */
+export const translateText = async (text, targetLang, sourceLang = "en") => {
+  const response = await fetch(`${SPEECH_BASE}/translate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      text,
+      target_lang: targetLang,
+      source_lang: sourceLang,
+      use_llm: true,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Translation failed: ${response.status}`);
+  }
+
+  return response.json();
+};

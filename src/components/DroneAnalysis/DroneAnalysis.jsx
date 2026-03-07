@@ -52,9 +52,17 @@ export default function DroneAnalysis() {
       .then((data) => {
         const list = data.videos || [];
         setVideos(list);
-        if (list.length > 0) setSelectedVideoId(list[0].video_id);
+        if (list.length > 0) {
+          setSelectedVideoId(list[0].video_id);
+        } else {
+          // Backend has no S3/local list yet — use the known default video
+          setSelectedVideoId("drone");
+        }
       })
-      .catch(() => {});
+      .catch(() => {
+        // Network error — still try the default
+        setSelectedVideoId("drone");
+      });
   }, []);
 
   // ── When selected video changes: reload captures, reset state ──
